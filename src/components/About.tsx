@@ -52,7 +52,7 @@ function TeamCard({
     >
       <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-primary/25 blur-3xl transition-opacity duration-500 group-hover:opacity-100 md:opacity-60" />
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col items-start gap-4">
         <div className="relative">
           <div
             className={`grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-border bg-secondary/60 ${
@@ -91,9 +91,9 @@ function TeamCard({
           )}
         </div>
 
-        <div className="min-w-0">
+        <div className="w-full min-w-0">
           <p className="text-[0.65rem] uppercase tracking-[0.28em] text-accent">{slot.title}</p>
-          <p className="mt-1 truncate font-display text-lg font-semibold">
+          <p className="mt-1 break-words font-display text-lg font-semibold leading-snug">
             {shownName ?? "Available slot"}
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
