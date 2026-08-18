@@ -1,13 +1,38 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { CheckCircle2, Menu, Send, TriangleAlert, X } from "lucide-react";
+import {
+  BadgeCheck,
+  BookOpenText,
+  Braces,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  FileSearch,
+  FileText,
+  Layers,
+  Library,
+  Menu,
+  MessageSquareQuote,
+  Quote,
+  RotateCcw,
+  Send,
+  Sparkles,
+  Stethoscope,
+  TimerReset,
+  Trash2,
+  TriangleAlert,
+  Workflow,
+  X,
+} from "lucide-react";
 
 import { About } from "@/components/About";
+import { Logo } from "@/components/Logo";
+import { EmptyState, Panel } from "@/components/Panel";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
 import { SkeletonPanel, SkeletonSteps, SkeletonTable } from "@/components/Skeletons";
+import { CORPUS, SUGGESTED_QUESTIONS } from "@/lib/corpus";
 import { askQuestion, type AskResult } from "@/lib/rag";
 import { useTheme } from "@/lib/theme";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,14 +41,16 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Ask clinical questions and get grounded recommendations, evidence, citations and retrieval traces from the Probably RAG pipeline.",
+          "Ask cardiovascular clinical questions and get grounded recommendations, evidence, citations and retrieval traces from the Probably RAG pipeline.",
       },
       { property: "og:title", content: "Probably RAG — AI Clinical Decision Support" },
       {
         property: "og:description",
         content:
-          "Grounded clinical recommendations with evidence, citations and full retrieval transparency.",
+          "Grounded cardiovascular recommendations with evidence, citations and full retrieval transparency.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Index,
@@ -37,6 +64,15 @@ const PIPELINE_STEPS = [
   "Structured output validated",
 ];
 
+type HistoryEntry = { query: string; at: number; citations: number; ok: boolean };
+
+function timeAgo(at: number) {
+  const s = Math.max(1, Math.round((Date.now() - at) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  return `${Math.round(s / 3600)}h ago`;
+}
+
 function Index() {
   const { theme, toggle } = useTheme();
   const [tab, setTab] = useState<TabId>("ask");
@@ -47,20 +83,36 @@ function Index() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AskResult | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [copied, setCopied] = useState(false);
 
-  const handleAsk = async () => {
-    const q = query.trim();
+  const runQuery = async (raw: string) => {
+    const q = raw.trim();
     if (!q || loading) return;
+    setQuery(q);
+    setTab("ask");
     setLoading(true);
     setError(null);
     setResult(null);
     try {
       const data = await askQuestion(q);
       setResult(data);
-      setHistory((prev) => [q, ...prev].slice(0, 12));
+      setHistory((prev) =>
+        [
+          {
+            query: q,
+            at: Date.now(),
+            citations: data.structured_output?.citations?.length ?? 0,
+            ok: true,
+          },
+          ...prev,
+        ].slice(0, 20),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+      setHistory((prev) =>
+        [{ query: q, at: Date.now(), citations: 0, ok: false }, ...prev].slice(0, 20),
+      );
     } finally {
       setLoading(false);
     }
@@ -73,7 +125,14 @@ function Index() {
 
   const structured = result?.structured_output;
   const citations = structured?.citations ?? [];
-  const chunks = (result?.retrieved_chunks ?? []).slice(0, 3);
+  const chunks = result?.retrieved_chunks ?? [];
+
+  const copyJson = async () => {
+    if (!structured) return;
+    await navigator.clipboard.writeText(JSON.stringify(structured, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
 
   return (
     <div className="min-h-screen md:flex">
@@ -93,7 +152,6 @@ function Index() {
         />
       </aside>
 
-
       {/* Mobile header */}
       <header className="glass sticky top-0 z-30 flex items-center gap-3 rounded-none px-4 py-3 md:hidden">
         <button
@@ -104,6 +162,7 @@ function Index() {
         >
           <Menu className="h-5 w-5" />
         </button>
+        <Logo size={32} glow={false} />
         <p className="truncate font-display text-sm font-semibold tracking-[0.24em]">
           PROBABLY RAG
         </p>
@@ -140,43 +199,79 @@ function Index() {
       </div>
 
       <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-10">
-        <div className="mb-8">
-          <h1 className="font-display text-3xl font-semibold tracking-[0.12em] md:text-4xl">
-            <span className="text-gradient">PROBABLY RAG</span>
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Retrieval-grounded clinical decision support — every recommendation traced back to its
-            source evidence.
-          </p>
+        <div className="reveal mb-8 flex items-center gap-4">
+          <Logo size={54} />
+          <div className="min-w-0">
+            <h1 className="font-display text-3xl font-semibold tracking-[0.12em] md:text-4xl">
+              <span className="text-gradient">PROBABLY RAG</span>
+            </h1>
+            <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
+              Retrieval-grounded cardiovascular decision support — every recommendation traced back
+              to its source evidence.
+            </p>
+          </div>
         </div>
 
         {tab === "ask" && (
           <>
-            <section className="glass mb-6 rounded-3xl p-5 md:p-6">
+            <section className="glass reveal mb-6 rounded-3xl p-5 md:p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-xl gradient-primary text-primary-foreground shadow-[var(--shadow-glow)]">
+                  <Stethoscope className="h-[18px] w-[18px]" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="font-display text-sm font-semibold tracking-[0.08em]">
+                    Clinical Query
+                  </h2>
+                  <p className="truncate text-xs text-muted-foreground">
+                    Grounded on {CORPUS.pages} pages of peer-reviewed cardiovascular evidence
+                  </p>
+                </div>
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void handleAsk();
-                  }}
-                  placeholder="Enter clinical query..."
-                  className="w-full min-w-0 rounded-xl border border-input bg-input/40 px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-                />
+                <div className="relative min-w-0">
+                  <MessageSquareQuote className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void runQuery(query);
+                    }}
+                    placeholder="Ask about risk factors, screening, prevention, therapy..."
+                    className="w-full min-w-0 rounded-xl border border-input bg-input/40 py-3 pl-11 pr-4 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+                  />
+                </div>
                 <button
                   type="button"
-                  onClick={() => void handleAsk()}
+                  onClick={() => void runQuery(query)}
                   disabled={loading || !query.trim()}
-                  className="lift inline-flex shrink-0 items-center justify-center gap-2 rounded-xl gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  className="lift inline-flex shrink-0 items-center justify-center gap-2 rounded-xl gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-50"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className={`h-4 w-4 ${loading ? "animate-pulse-soft" : ""}`} />
                   {loading ? "Asking..." : "Ask"}
                 </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-accent" /> Try
+                </span>
+                {SUGGESTED_QUESTIONS.slice(0, 4).map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => void runQuery(q)}
+                    className="lift max-w-full truncate rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {q}
+                  </button>
+                ))}
               </div>
             </section>
 
             {error && (
-              <div className="mb-6 flex items-start gap-3 rounded-3xl border border-destructive/40 bg-destructive/10 p-5 text-sm">
+              <div className="reveal mb-6 flex items-start gap-3 rounded-3xl border border-destructive/40 bg-destructive/10 p-5 text-sm">
                 <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                 <p>{error}</p>
               </div>
@@ -193,33 +288,34 @@ function Index() {
                   </>
                 ) : structured ? (
                   <>
-                    <section className="glass lift rounded-3xl p-6">
-                      <h2 className="mb-3 text-sm font-semibold tracking-wide text-accent">
-                        Recommendation
-                      </h2>
+                    <Panel
+                      icon={BadgeCheck}
+                      title="Recommendation"
+                      hint="Model answer constrained to retrieved evidence"
+                      className="lift border-l-2 border-l-accent/60"
+                    >
                       <p className="whitespace-pre-wrap text-sm leading-relaxed">
                         {structured.recommendation || "No recommendation returned."}
                       </p>
-                    </section>
+                    </Panel>
 
-                    <section className="glass lift rounded-3xl p-6">
-                      <h2 className="mb-3 text-sm font-semibold tracking-wide text-accent">
-                        Evidence
-                      </h2>
+                    <Panel icon={BookOpenText} title="Evidence" hint="Supporting passages summary">
                       <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                         {structured.evidence || "No evidence returned."}
                       </p>
-                    </section>
+                    </Panel>
 
-                    <section className="glass rounded-3xl p-6">
-                      <h2 className="mb-4 text-sm font-semibold tracking-wide text-accent">
-                        Citations
-                      </h2>
+                    <Panel
+                      icon={Quote}
+                      title="Citations"
+                      hint={`${citations.length} reference${citations.length === 1 ? "" : "s"}`}
+                    >
                       {citations.length ? (
                         <div className="-mx-2 overflow-x-auto px-2">
                           <table className="w-full min-w-[420px] text-left text-sm">
                             <thead>
                               <tr className="text-xs uppercase tracking-wider text-muted-foreground">
+                                <th className="pb-3 pr-4 font-medium">#</th>
                                 <th className="pb-3 pr-4 font-medium">Document</th>
                                 <th className="pb-3 font-medium">Section</th>
                               </tr>
@@ -227,6 +323,9 @@ function Index() {
                             <tbody>
                               {citations.map((c, i) => (
                                 <tr key={i} className="border-t border-border">
+                                  <td className="py-3 pr-4 text-xs text-accent">
+                                    {String(i + 1).padStart(2, "0")}
+                                  </td>
                                   <td className="py-3 pr-4">{c.document ?? "—"}</td>
                                   <td className="py-3 text-muted-foreground">{c.section ?? "—"}</td>
                                 </tr>
@@ -235,23 +334,42 @@ function Index() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">No citations returned.</p>
+                        <EmptyState
+                          icon={Quote}
+                          title="No citations returned"
+                          body="The pipeline answered without attaching reference metadata."
+                        />
                       )}
-                    </section>
+                    </Panel>
 
-                    <section className="glass rounded-3xl p-6">
-                      <h2 className="mb-4 text-sm font-semibold tracking-wide text-accent">
-                        Raw structured output
-                      </h2>
+                    <Panel
+                      icon={Braces}
+                      title="Raw structured output"
+                      hint="Validated JSON payload"
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => void copyJson()}
+                          className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          {copied ? "Copied" : "Copy"}
+                        </button>
+                      }
+                    >
                       <pre className="max-h-80 overflow-auto rounded-xl bg-secondary/60 p-4 text-xs leading-relaxed">
                         {JSON.stringify(structured, null, 2)}
                       </pre>
-                    </section>
+                    </Panel>
                   </>
                 ) : (
-                  <section className="glass rounded-3xl p-8 text-sm text-muted-foreground">
-                    Enter a clinical query above to run the retrieval pipeline.
-                  </section>
+                  <Panel icon={FileSearch} title="Awaiting query" hint="Pipeline idle">
+                    <EmptyState
+                      icon={Stethoscope}
+                      title="Ask a clinical question to begin"
+                      body="Type a question above or pick one of the suggested prompts — the retriever will pull the most relevant passages and ground the answer in them."
+                    />
+                  </Panel>
                 )}
               </div>
 
@@ -263,34 +381,34 @@ function Index() {
                   </>
                 ) : (
                   <>
-                    <section className="glass rounded-3xl p-6">
-                      <h2 className="mb-4 text-sm font-semibold tracking-wide text-accent">
-                        Pipeline Status
-                      </h2>
+                    <Panel icon={Workflow} title="Pipeline Status" hint="Retrieval trace">
                       <ol className="flex flex-col gap-4">
-                        {PIPELINE_STEPS.map((step) => (
+                        {PIPELINE_STEPS.map((step, i) => (
                           <li key={step} className="flex items-start gap-3 text-sm">
                             <CheckCircle2
-                              className={`mt-0.5 h-5 w-5 shrink-0 ${
-                                result ? "text-success" : "text-muted-foreground"
+                              className={`mt-0.5 h-5 w-5 shrink-0 transition-colors duration-500 ${
+                                result ? "text-success" : "text-muted-foreground/60"
                               }`}
+                              style={{ transitionDelay: `${i * 90}ms` }}
+                              strokeWidth={1.9}
                             />
                             <span className={result ? "" : "text-muted-foreground"}>{step}</span>
                           </li>
                         ))}
                       </ol>
-                    </section>
+                    </Panel>
 
-                    <section className="glass rounded-3xl p-6">
-                      <h2 className="mb-4 text-sm font-semibold tracking-wide text-accent">
-                        Retrieved Chunks
-                      </h2>
+                    <Panel
+                      icon={Layers}
+                      title="Retrieved Chunks"
+                      hint={`${chunks.length} passage${chunks.length === 1 ? "" : "s"} ranked`}
+                    >
                       {chunks.length ? (
                         <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
-                          {chunks.map((chunk, i) => (
+                          {chunks.slice(0, 5).map((chunk, i) => (
                             <article
                               key={i}
-                              className="rounded-xl border border-border bg-secondary/50 p-4"
+                              className="lift rounded-xl border border-border bg-secondary/50 p-4"
                             >
                               <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                                 <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
@@ -307,11 +425,13 @@ function Index() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">
-                          Chunks retrieved for a query will appear here.
-                        </p>
+                        <EmptyState
+                          icon={Layers}
+                          title="No passages yet"
+                          body="Chunks retrieved for a query, with their similarity scores, will appear here."
+                        />
                       )}
-                    </section>
+                    </Panel>
                   </>
                 )}
               </div>
@@ -320,53 +440,163 @@ function Index() {
         )}
 
         {tab === "history" && (
-          <section className="glass rounded-3xl p-6">
-            <h2 className="mb-4 font-display text-lg">History</h2>
-            {history.length ? (
+          <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+            <Panel
+              icon={TimerReset}
+              title="Query History"
+              hint={`${history.length} question${history.length === 1 ? "" : "s"} this session`}
+              action={
+                history.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setHistory([])}
+                    className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Clear
+                  </button>
+                ) : undefined
+              }
+            >
+              {history.length ? (
+                <ul className="flex flex-col gap-3">
+                  {history.map((entry, i) => (
+                    <li key={`${entry.at}-${i}`} className="reveal" style={{ animationDelay: `${i * 50}ms` }}>
+                      <button
+                        type="button"
+                        onClick={() => void runQuery(entry.query)}
+                        className="lift group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-border bg-secondary/50 px-4 py-3 text-left"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/15 text-xs font-semibold text-accent">
+                          {String(history.length - i).padStart(2, "0")}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm">{entry.query}</span>
+                          <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <span>{timeAgo(entry.at)}</span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 ${
+                                entry.ok
+                                  ? "bg-success/15 text-success"
+                                  : "bg-destructive/15 text-destructive"
+                              }`}
+                            >
+                              {entry.ok ? `${entry.citations} citations` : "failed"}
+                            </span>
+                          </span>
+                        </span>
+                        <RotateCcw className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:-rotate-90 group-hover:text-accent" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  icon={TimerReset}
+                  title="No questions asked yet"
+                  body="Every clinical query you run this session is logged here so you can replay it in one click."
+                />
+              )}
+            </Panel>
+
+            <Panel icon={Sparkles} title="Suggested Queries" hint="Curated from the corpus">
               <ul className="flex flex-col gap-2">
-                {history.map((q, i) => (
-                  <li key={i}>
+                {SUGGESTED_QUESTIONS.map((q, i) => (
+                  <li key={q}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setQuery(q);
-                        setTab("ask");
-                      }}
-                      className="lift w-full rounded-xl border border-border bg-secondary/50 px-4 py-3 text-left text-sm"
+                      onClick={() => void runQuery(q)}
+                      className="lift reveal w-full rounded-xl border border-border bg-secondary/40 px-4 py-3 text-left text-xs leading-relaxed text-muted-foreground hover:text-foreground"
+                      style={{ animationDelay: `${i * 60}ms` }}
                     >
                       {q}
                     </button>
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">No questions asked yet this session.</p>
-            )}
-          </section>
+            </Panel>
+          </div>
         )}
 
         {tab === "sources" && (
-          <section className="glass rounded-3xl p-6">
-            <h2 className="mb-4 font-display text-lg">Sources</h2>
-            {citations.length ? (
-              <ul className="flex flex-col gap-2 text-sm">
-                {citations.map((c, i) => (
-                  <li key={i} className="rounded-xl border border-border bg-secondary/50 px-4 py-3">
-                    <span className="font-medium">{c.document ?? "Unknown document"}</span>
-                    <span className="text-muted-foreground"> — {c.section ?? "—"}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Sources cited by the latest answer will be listed here.
-              </p>
-            )}
-          </section>
+          <div className="flex flex-col gap-6">
+            <Panel icon={Library} title="Knowledge Base" hint="Indexed corpus powering the retriever">
+              <article className="rounded-2xl border border-border bg-secondary/40 p-5">
+                <div className="flex items-start gap-4">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl gradient-primary text-primary-foreground shadow-[var(--shadow-glow)]">
+                    <FileText className="h-5 w-5" strokeWidth={1.9} />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="font-display text-sm leading-relaxed">{CORPUS.title}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">{CORPUS.journal}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{CORPUS.authors}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs text-accent">
+                        {CORPUS.pages} pages indexed
+                      </span>
+                      <a
+                        href={CORPUS.doiUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="lift inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" /> DOI {CORPUS.doi}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+                  {CORPUS.topics.map((t, i) => (
+                    <span
+                      key={t}
+                      className="reveal rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground"
+                      style={{ animationDelay: `${i * 40}ms` }}
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            </Panel>
+
+            <Panel
+              icon={Quote}
+              title="Cited in latest answer"
+              hint={`${citations.length} citation${citations.length === 1 ? "" : "s"}`}
+            >
+              {citations.length ? (
+                <ul className="grid gap-3 md:grid-cols-2">
+                  {citations.map((c, i) => (
+                    <li
+                      key={i}
+                      className="lift reveal rounded-2xl border border-border bg-secondary/50 p-4"
+                      style={{ animationDelay: `${i * 50}ms` }}
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary/15 text-xs text-accent">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="truncate text-sm font-medium">
+                          {c.document ?? "Unknown document"}
+                        </span>
+                      </div>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {c.section ?? "Section not reported"}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  icon={FileSearch}
+                  title="No answer cited yet"
+                  body="Run a clinical query and the exact sections the model relied on will be listed here."
+                />
+              )}
+            </Panel>
+          </div>
         )}
 
         {tab === "about" && <About />}
-
       </main>
     </div>
   );
