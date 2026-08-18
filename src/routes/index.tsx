@@ -464,7 +464,9 @@ function Index() {
                     <Panel
                       icon={Layers}
                       title="Retrieved Chunks"
-                      hint={`${chunks.length} passage${chunks.length === 1 ? "" : "s"} ranked`}
+                      hint={`${chunks.length} passage${chunks.length === 1 ? "" : "s"} ranked${
+                        typeof best?.score === "number" ? ` · best ${best.score.toFixed(3)}` : ""
+                      }`}
                     >
                       {chunks.length ? (
                         <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
