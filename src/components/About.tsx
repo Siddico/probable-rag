@@ -359,38 +359,41 @@ export function About() {
     <div className="flex flex-col gap-8">
       <section className="glass reveal relative overflow-hidden rounded-3xl p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 opacity-70 animate-aurora bg-[radial-gradient(45%_60%_at_15%_10%,color-mix(in_oklab,var(--primary)_28%,transparent),transparent_70%),radial-gradient(40%_55%_at_85%_20%,color-mix(in_oklab,var(--accent)_24%,transparent),transparent_70%)]" />
-        <div className="relative">
-          <p className="text-[0.65rem] uppercase tracking-[0.34em] text-accent">About the project</p>
-          <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight md:text-3xl">
-            <span className="text-gradient">Retrieval-grounded clinical intelligence</span>
-          </h2>
-          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            Probably RAG embeds every clinical query, matches it against a curated evidence corpus,
-            re-ranks the strongest passages, and answers only when the retrieved evidence supports a
-            recommendation — otherwise the pipeline refuses. Each answer ships with its evidence,
-            citations, and raw chunks so the reasoning trail stays fully auditable.
-          </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {[
-              { k: "Pipeline", v: "Embed → Retrieve → Re-rank → Validate" },
-              { k: "Guardrail", v: "Strict refusal without evidence" },
-              { k: "Team", v: `${filled}/6 profiles registered` },
-            ].map((item) => (
-              <div
-                key={item.k}
-                className="lift rounded-2xl border border-border bg-secondary/50 p-4"
-              >
-                <p className="text-[0.65rem] uppercase tracking-[0.24em] text-muted-foreground">
-                  {item.k}
-                </p>
-                <p className="mt-1.5 text-sm font-medium">{item.v}</p>
-              </div>
-            ))}
+        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-stretch">
+          <div>
+            <p className="text-[0.65rem] uppercase tracking-[0.34em] text-accent">About the project</p>
+            <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight md:text-3xl">
+              <span className="text-gradient">Retrieval-grounded clinical intelligence</span>
+            </h2>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+              Probably RAG embeds every clinical query, matches it against a curated evidence corpus,
+              re-ranks the strongest passages, and answers only when the retrieved evidence supports a
+              recommendation — otherwise the pipeline refuses. Each answer ships with its evidence,
+              citations, and raw chunks so the reasoning trail stays fully auditable.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {[
+                { k: "Pipeline", v: "Embed → Retrieve → Re-rank → Validate" },
+                { k: "Guardrail", v: "Strict refusal without evidence" },
+                { k: "Team", v: `${filled}/6 profiles registered` },
+              ].map((item) => (
+                <div
+                  key={item.k}
+                  className="lift rounded-2xl border border-border bg-secondary/50 p-4"
+                >
+                  <p className="text-[0.65rem] uppercase tracking-[0.24em] text-muted-foreground">
+                    {item.k}
+                  </p>
+                  <p className="mt-1.5 text-sm font-medium">{item.v}</p>
+                </div>
+              ))}
+            </div>
           </div>
+          <TeamCover />
         </div>
       </section>
 
-      <TeamCover />
+
 
 
 
