@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Camera,
   Check,
+  ImagePlus,
   Pencil,
   ShieldCheck,
   Sparkles,
@@ -10,7 +11,126 @@ import {
   X,
 } from "lucide-react";
 
-import { fileToDataUrl, useTeam, type TeamSlot } from "@/lib/team";
+import { fileToDataUrl, useTeam, useTeamCover, type TeamSlot } from "@/lib/team";
+
+function TeamCover() {
+  const { cover, ready, saveCover, clearCover } = useTeamCover();
+  const [dragging, setDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [flash, setFlash] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(false), 700);
+    return () => clearTimeout(t);
+  }, [flash]);
+
+  const handle = async (file: File | undefined) => {
+    setDragging(false);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      return;
+    }
+    if (file.size > 2_500_000) {
+      setError("Please choose an image under 2.5 MB.");
+      return;
+    }
+    try {
+      saveCover(await fileToDataUrl(file));
+      setError(null);
+      setFlash(true);
+    } catch {
+      setError("Could not read that image.");
+    }
+  };
+
+  if (!ready) return null;
+
+  return (
+    <section
+      className={`glass reveal shine-on-hover group relative overflow-hidden rounded-3xl ${
+        flash ? "animate-pop-in" : ""
+      }`}
+    >
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          void handle(e.dataTransfer.files?.[0]);
+        }}
+        className={`relative transition-[background-color,box-shadow] duration-300 ${
+          dragging ? "bg-primary/10 ring-2 ring-ring" : ""
+        }`}
+      >
+        {cover ? (
+          <div className="relative h-56 w-full overflow-hidden sm:h-72">
+            <img
+              src={cover}
+              alt="Probably RAG team group photo"
+              className="h-full w-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,color-mix(in_oklab,var(--background)_88%,transparent),transparent_65%)]" />
+            <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 p-5">
+              <div>
+                <p className="text-[0.65rem] uppercase tracking-[0.3em] text-accent">Team photo</p>
+                <p className="mt-1 font-display text-lg font-semibold">The people behind the pipeline</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  className="lift inline-flex items-center gap-2 rounded-xl gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-[var(--shadow-glow)]"
+                >
+                  <Camera className="h-3.5 w-3.5" /> Replace
+                </button>
+                <button
+                  type="button"
+                  onClick={clearCover}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/60 px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex h-56 w-full flex-col items-center justify-center gap-3 px-6 text-center sm:h-64"
+          >
+            <span className="pointer-events-none absolute inset-0 opacity-70 animate-aurora bg-[radial-gradient(45%_60%_at_25%_20%,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_70%),radial-gradient(40%_55%_at_80%_25%,color-mix(in_oklab,var(--accent)_20%,transparent),transparent_70%)]" />
+            <span className="relative grid h-14 w-14 place-items-center rounded-2xl gradient-primary text-primary-foreground shadow-[var(--shadow-glow)] animate-glow-ring transition-transform duration-300 group-hover:scale-110">
+              <ImagePlus className="h-6 w-6" />
+            </span>
+            <span className="relative font-display text-base font-semibold">
+              Upload a team photo
+            </span>
+            <span className="relative text-xs text-muted-foreground">
+              Drag &amp; drop or click to browse · PNG or JPG up to 2.5 MB
+            </span>
+          </button>
+        )}
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => void handle(e.target.files?.[0])}
+        />
+      </div>
+      {error && <p className="px-5 pb-4 text-xs text-destructive">{error}</p>}
+    </section>
+  );
+}
+
 
 function initials(name: string) {
   return name
