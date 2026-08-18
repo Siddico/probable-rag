@@ -128,7 +128,8 @@ function TeamCover() {
         />
       </div>
       {error && <p className="px-5 pb-4 text-xs text-destructive">{error}</p>}
-    </section>
+    </div>
+
   );
 }
 
