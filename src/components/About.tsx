@@ -201,7 +201,7 @@ function TeamCard({
 
   const avatar = (
     <div
-      className={`grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-border bg-secondary/60 ${
+      className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-border bg-secondary/60 sm:h-20 sm:w-20 ${
         slot.filled && !editing ? "" : "ring-1 ring-primary/30"
       }`}
     >
