@@ -26,7 +26,7 @@ export type AskResult = {
 };
 
 export async function askQuestion(query: string): Promise<AskResult> {
-  const res = await fetch(`${API_URL}/api/ask`, {
+  const res = await fetch(`${API_URL}/api/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
