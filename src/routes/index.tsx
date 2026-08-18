@@ -41,6 +41,8 @@ function Index() {
   const { theme, toggle } = useTheme();
   const [tab, setTab] = useState<TabId>("ask");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
