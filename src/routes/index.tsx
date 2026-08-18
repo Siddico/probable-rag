@@ -347,6 +347,17 @@ function Index() {
                       <p className="whitespace-pre-wrap text-sm leading-relaxed">
                         {structured.recommendation || "No recommendation returned."}
                       </p>
+                      {(confidence || typeof best?.score === "number") && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                          {confidence && <ConfidenceBadge value={confidence} />}
+                          {typeof best?.score === "number" && <ScoreBadge score={best.score} />}
+                          {best?.section && (
+                            <span className="max-w-full truncate rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                              best match · {best.section}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </Panel>
 
                     <Panel icon={BookOpenText} title="Evidence" hint="Supporting passages summary">
