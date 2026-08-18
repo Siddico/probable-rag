@@ -1,5 +1,5 @@
 export const API_URL =
-  import.meta.env.VITE_API_URL || "https://frontend-fawn-three-88.vercel.app";
+  import.meta.env["VITE_API_URL"] || "https://frontend-fawn-three-88.vercel.app";
 
 export type Citation = {
   document?: string;
