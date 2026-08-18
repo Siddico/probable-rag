@@ -103,7 +103,7 @@ function TeamCover() {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex h-56 w-full flex-col items-center justify-center gap-3 px-6 text-center sm:h-64"
+            className="flex h-full min-h-56 w-full flex-col items-center justify-center gap-3 px-6 py-8 text-center"
           >
             <span className="pointer-events-none absolute inset-0 opacity-70 animate-aurora bg-[radial-gradient(45%_60%_at_25%_20%,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_70%),radial-gradient(40%_55%_at_80%_25%,color-mix(in_oklab,var(--accent)_20%,transparent),transparent_70%)]" />
             <span className="relative grid h-14 w-14 place-items-center rounded-2xl gradient-primary text-primary-foreground shadow-[var(--shadow-glow)] animate-glow-ring transition-transform duration-300 group-hover:scale-110">
