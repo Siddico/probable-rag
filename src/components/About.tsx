@@ -347,29 +347,7 @@ function TeamCard({
         </div>
       </div>
 
-      {slot.filled && !editing && (
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="lift inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3.5 py-2 text-xs font-semibold transition-colors hover:bg-secondary"
-          >
-            <Pencil className="h-3.5 w-3.5" /> Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onClear(slot.id);
-              setName("");
-              setPhoto(null);
-              setEditing(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Reset
-          </button>
-        </div>
-      )}
+
     </article>
   );
 }
