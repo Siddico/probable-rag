@@ -49,8 +49,8 @@ function TeamCover() {
   if (!ready) return null;
 
   return (
-    <section
-      className={`glass reveal shine-on-hover group relative overflow-hidden rounded-3xl ${
+    <div
+      className={`glass reveal shine-on-hover group relative flex h-full flex-col overflow-hidden rounded-2xl ${
         flash ? "animate-pop-in" : ""
       }`}
     >
@@ -64,10 +64,11 @@ function TeamCover() {
           e.preventDefault();
           void handle(e.dataTransfer.files?.[0]);
         }}
-        className={`relative transition-[background-color,box-shadow] duration-300 ${
+        className={`relative flex-1 transition-[background-color,box-shadow] duration-300 ${
           dragging ? "bg-primary/10 ring-2 ring-ring" : ""
         }`}
       >
+
         {cover ? (
           <div className="relative h-full min-h-56 w-full overflow-hidden">
             <img
