@@ -31,6 +31,14 @@ import { EmptyState, Panel } from "@/components/Panel";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
 import { SkeletonPanel, SkeletonSteps, SkeletonTable } from "@/components/Skeletons";
 import { CORPUS, SUGGESTED_QUESTIONS } from "@/lib/corpus";
+import {
+  buildEntry,
+  buildFailedEntry,
+  confidenceScore,
+  topChunk,
+  useHistory,
+  type HistoryEntry,
+} from "@/lib/history";
 import { askQuestion, type AskResult } from "@/lib/rag";
 import { useTheme } from "@/lib/theme";
 
@@ -64,13 +72,41 @@ const PIPELINE_STEPS = [
   "Structured output validated",
 ];
 
-type HistoryEntry = { query: string; at: number; citations: number; ok: boolean };
-
 function timeAgo(at: number) {
   const s = Math.max(1, Math.round((Date.now() - at) / 1000));
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.round(s / 60)}m ago`;
-  return `${Math.round(s / 3600)}h ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+}
+
+const CONFIDENCE_STYLES: Record<string, string> = {
+  high: "bg-success/15 text-success border-success/30",
+  medium: "bg-warning/15 text-warning border-warning/30",
+  moderate: "bg-warning/15 text-warning border-warning/30",
+  low: "bg-destructive/15 text-destructive border-destructive/30",
+};
+
+function ConfidenceBadge({ value, className = "" }: { value: string; className?: string }) {
+  const style = CONFIDENCE_STYLES[value] ?? "bg-primary/15 text-accent border-border";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${style} ${className}`}
+    >
+      <Gauge className="h-3.5 w-3.5" strokeWidth={2} /> {value} confidence
+    </span>
+  );
+}
+
+function ScoreBadge({ score, className = "" }: { score: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground ${className}`}
+    >
+      <TrendingUp className="h-3.5 w-3.5 text-accent" strokeWidth={2} /> top score{" "}
+      <span className="font-semibold text-foreground">{score.toFixed(3)}</span>
+    </span>
+  );
 }
 
 function Index() {
@@ -83,8 +119,20 @@ function Index() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AskResult | null>(null);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const { history, ready, add, remove, clear } = useHistory();
+  const [restored, setRestored] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Restore the last successful answer after a reload so nothing is lost.
+  useEffect(() => {
+    if (!ready || restored) return;
+    setRestored(true);
+    const last = history.find((e) => e.ok && e.result);
+    if (last?.result) {
+      setResult(last.result);
+      setQuery(last.query);
+    }
+  }, [ready, restored, history]);
 
   const runQuery = async (raw: string) => {
     const q = raw.trim();
@@ -97,25 +145,25 @@ function Index() {
     try {
       const data = await askQuestion(q);
       setResult(data);
-      setHistory((prev) =>
-        [
-          {
-            query: q,
-            at: Date.now(),
-            citations: data.structured_output?.citations?.length ?? 0,
-            ok: true,
-          },
-          ...prev,
-        ].slice(0, 20),
-      );
+      add(buildEntry(q, data));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
-      setHistory((prev) =>
-        [{ query: q, at: Date.now(), citations: 0, ok: false }, ...prev].slice(0, 20),
-      );
+      const message = err instanceof Error ? err.message : "Something went wrong.";
+      setError(message);
+      add(buildFailedEntry(q, message));
     } finally {
       setLoading(false);
     }
+  };
+
+  const openEntry = (entry: HistoryEntry) => {
+    if (entry.result) {
+      setQuery(entry.query);
+      setResult(entry.result);
+      setError(null);
+      setTab("ask");
+      return;
+    }
+    void runQuery(entry.query);
   };
 
   const selectTab = (next: TabId) => {
