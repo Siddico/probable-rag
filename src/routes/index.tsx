@@ -176,6 +176,8 @@ function Index() {
   const structured = result?.structured_output;
   const citations = structured?.citations ?? [];
   const chunks = result?.retrieved_chunks ?? [];
+  const confidence = confidenceScore(result ?? undefined);
+  const best = topChunk(result ?? undefined);
 
   const copyJson = async () => {
     if (!structured) return;
