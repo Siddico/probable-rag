@@ -79,6 +79,44 @@ export function useTeam() {
   return { slots, ready, save, clear };
 }
 
+const COVER_KEY = "probably-rag-team-cover-v1";
+
+export function useTeamCover() {
+  const [cover, setCover] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCover(localStorage.getItem(COVER_KEY));
+    } catch {
+      /* unavailable */
+    }
+    setReady(true);
+  }, []);
+
+  const saveCover = useCallback((dataUrl: string) => {
+    setCover(dataUrl);
+    try {
+      localStorage.setItem(COVER_KEY, dataUrl);
+    } catch {
+      /* storage full */
+    }
+  }, []);
+
+  const clearCover = useCallback(() => {
+    setCover(null);
+    try {
+      localStorage.removeItem(COVER_KEY);
+    } catch {
+      /* unavailable */
+    }
+  }, []);
+
+  return { cover, ready, saveCover, clearCover };
+}
+
+
+
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
