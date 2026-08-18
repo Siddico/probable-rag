@@ -255,27 +255,52 @@ function TeamCard({
           )}
         </div>
 
-        <div className="w-full min-w-0">
+        <div className="min-w-0 flex-1 basis-40">
           <p className="text-[0.65rem] uppercase tracking-[0.28em] text-accent">{slot.title}</p>
-          <p className="mt-1 break-words font-display text-lg font-semibold leading-snug">
+          <p className="mt-1 break-words font-display text-base font-semibold leading-snug sm:text-lg">
             {slot.filled ? slot.name : "Available slot"}
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
             {slot.filled ? (
               <>
-                <span className="grid h-4 w-4 place-items-center rounded-full gradient-primary text-primary-foreground">
+                <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full gradient-primary text-primary-foreground">
                   <Check className="h-2.5 w-2.5" />
                 </span>
                 Profile saved · editable anytime
               </>
             ) : (
               <>
-                <Sparkles className="h-3.5 w-3.5 animate-pulse-soft" /> Add your name and photo
+                <Sparkles className="h-3.5 w-3.5 shrink-0 animate-pulse-soft" /> Add your name and photo
               </>
             )}
           </p>
         </div>
+
+        {slot.filled && !editing && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:ml-auto">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="lift inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3.5 py-2 text-xs font-semibold transition-colors hover:bg-secondary"
+            >
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onClear(slot.id);
+                setName("");
+                setPhoto(null);
+                setEditing(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Reset
+            </button>
+          </div>
+        )}
       </div>
+
 
       <div
         className="relative grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
