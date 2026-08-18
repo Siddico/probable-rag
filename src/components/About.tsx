@@ -158,6 +158,8 @@ function TeamCard({
       <div
         className="relative grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
         style={{ gridTemplateRows: editing ? "1fr" : "0fr", opacity: editing ? 1 : 0 }}
+        aria-hidden={!editing}
+        {...(!editing ? { inert: "" as unknown as boolean } : {})}
       >
         <div className="overflow-hidden">
           <div className="mt-5 flex flex-col gap-3">
@@ -199,11 +201,11 @@ function TeamCard({
       </div>
 
       {slot.filled && !editing && (
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="lift inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary"
+            className="lift inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3.5 py-2 text-xs font-semibold transition-colors hover:bg-secondary"
           >
             <Pencil className="h-3.5 w-3.5" /> Edit
           </button>
@@ -215,7 +217,7 @@ function TeamCard({
               setPhoto(null);
               setEditing(true);
             }}
-            className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-destructive"
+            className="inline-flex items-center gap-2 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" /> Reset
           </button>
