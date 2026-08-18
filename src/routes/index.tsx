@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BadgeCheck,
   BookOpenText,
@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileSearch,
   FileText,
+  Gauge,
   Layers,
   Library,
   Menu,
@@ -20,6 +21,7 @@ import {
   Stethoscope,
   TimerReset,
   Trash2,
+  TrendingUp,
   TriangleAlert,
   Workflow,
   X,
