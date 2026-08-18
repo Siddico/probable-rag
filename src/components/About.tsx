@@ -231,7 +231,7 @@ function TeamCard({
     >
       <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-primary/25 blur-3xl transition-opacity duration-500 group-hover:opacity-100 md:opacity-60" />
 
-      <div className="relative flex flex-col items-start gap-4">
+      <div className="relative flex flex-wrap items-center gap-4">
         <div className={`relative rounded-2xl ${slot.filled && !editing ? "avatar-ring" : ""}`}>
           <div className="relative rounded-2xl bg-background">{avatar}</div>
           {editing && (
