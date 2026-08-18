@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { CheckCircle2, Menu, Send, TriangleAlert, X } from "lucide-react";
 
+import { About } from "@/components/About";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
 import { SkeletonPanel, SkeletonSteps, SkeletonTable } from "@/components/Skeletons";
 import { askQuestion, type AskResult } from "@/lib/rag";
 import { useTheme } from "@/lib/theme";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,6 +41,8 @@ function Index() {
   const { theme, toggle } = useTheme();
   const [tab, setTab] = useState<TabId>("ask");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,9 +78,21 @@ function Index() {
   return (
     <div className="min-h-screen md:flex">
       {/* Desktop sidebar */}
-      <aside className="glass sticky top-0 hidden h-screen w-[260px] shrink-0 rounded-none md:block">
-        <SidebarContent active={tab} onSelect={selectTab} theme={theme} onToggleTheme={toggle} />
+      <aside
+        className={`glass sticky top-0 hidden h-screen shrink-0 overflow-hidden rounded-none transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:block ${
+          collapsed ? "w-[84px]" : "w-[260px]"
+        }`}
+      >
+        <SidebarContent
+          active={tab}
+          onSelect={selectTab}
+          theme={theme}
+          onToggleTheme={toggle}
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed((v) => !v)}
+        />
       </aside>
+
 
       {/* Mobile header */}
       <header className="glass sticky top-0 z-30 flex items-center gap-3 rounded-none px-4 py-3 md:hidden">
@@ -349,20 +365,8 @@ function Index() {
           </section>
         )}
 
-        {tab === "about" && (
-          <section className="glass rounded-3xl p-6 text-sm leading-relaxed text-muted-foreground">
-            <h2 className="mb-4 font-display text-lg text-foreground">About Probably RAG</h2>
-            <p>
-              Probably RAG is a retrieval-augmented clinical decision support interface. Queries are
-              embedded, matched against a curated clinical corpus, re-ranked, and answered only when
-              the retrieved evidence supports a recommendation — otherwise the pipeline refuses.
-            </p>
-            <p className="mt-3">
-              Every answer ships with its evidence, citations, and the raw retrieved chunks so
-              clinicians can audit the reasoning trail.
-            </p>
-          </section>
-        )}
+        {tab === "about" && <About />}
+
       </main>
     </div>
   );
