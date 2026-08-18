@@ -494,12 +494,12 @@ function Index() {
             <Panel
               icon={TimerReset}
               title="Query History"
-              hint={`${history.length} question${history.length === 1 ? "" : "s"} this session`}
+              hint={`${history.length} saved question${history.length === 1 ? "" : "s"} — stored on this device`}
               action={
                 history.length ? (
                   <button
                     type="button"
-                    onClick={() => setHistory([])}
+                    onClick={clear}
                     className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Clear
@@ -510,32 +510,74 @@ function Index() {
               {history.length ? (
                 <ul className="flex flex-col gap-3">
                   {history.map((entry, i) => (
-                    <li key={`${entry.at}-${i}`} className="reveal" style={{ animationDelay: `${i * 50}ms` }}>
-                      <button
-                        type="button"
-                        onClick={() => void runQuery(entry.query)}
-                        className="lift group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-border bg-secondary/50 px-4 py-3 text-left"
-                      >
-                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/15 text-xs font-semibold text-accent">
-                          {String(history.length - i).padStart(2, "0")}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm">{entry.query}</span>
-                          <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span>{timeAgo(entry.at)}</span>
-                            <span
-                              className={`rounded-full px-2 py-0.5 ${
-                                entry.ok
-                                  ? "bg-success/15 text-success"
-                                  : "bg-destructive/15 text-destructive"
-                              }`}
-                            >
-                              {entry.ok ? `${entry.citations} citations` : "failed"}
-                            </span>
+                    <li key={entry.id} className="reveal" style={{ animationDelay: `${i * 50}ms` }}>
+                      <div className="lift group rounded-2xl border border-border bg-secondary/50 p-4">
+                        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3">
+                          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/15 text-xs font-semibold text-accent">
+                            {String(history.length - i).padStart(2, "0")}
                           </span>
-                        </span>
-                        <RotateCcw className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:-rotate-90 group-hover:text-accent" />
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => openEntry(entry)}
+                            className="min-w-0 text-left"
+                          >
+                            <span className="block truncate text-sm group-hover:text-accent">
+                              {entry.query}
+                            </span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              {timeAgo(entry.at)} ·{" "}
+                              {new Date(entry.at).toLocaleString(undefined, {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Re-run query"
+                            onClick={() => void runQuery(entry.query)}
+                            className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition-transform duration-300 hover:-rotate-90 hover:text-accent"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Delete entry"
+                            onClick={() => remove(entry.id)}
+                            className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {entry.ok ? (
+                            <>
+                              {entry.confidence && <ConfidenceBadge value={entry.confidence} />}
+                              {typeof entry.topScore === "number" && (
+                                <ScoreBadge score={entry.topScore} />
+                              )}
+                              <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground">
+                                {entry.citations} citation{entry.citations === 1 ? "" : "s"}
+                              </span>
+                              <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground">
+                                {entry.chunks} chunk{entry.chunks === 1 ? "" : "s"}
+                              </span>
+                              {entry.topSection && (
+                                <span className="max-w-full truncate rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                                  {entry.topSection}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-xs text-destructive">
+                              failed
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -543,7 +585,7 @@ function Index() {
                 <EmptyState
                   icon={TimerReset}
                   title="No questions asked yet"
-                  body="Every clinical query you run this session is logged here so you can replay it in one click."
+                  body="Every clinical query is saved on this device with its confidence level and top retrieval score, so you can reopen the full answer any time."
                 />
               )}
             </Panel>
