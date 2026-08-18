@@ -388,6 +388,10 @@ export function About() {
         </div>
       </section>
 
+      <TeamCover />
+
+
+
       <section>
         <header className="mb-4 flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl gradient-primary text-primary-foreground">
