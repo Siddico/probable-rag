@@ -224,7 +224,7 @@ function TeamCard({
 
   return (
     <article
-      className={`glass lift reveal shine-on-hover group relative overflow-hidden rounded-3xl p-6 ${
+      className={`glass lift reveal shine-on-hover group relative overflow-hidden rounded-3xl p-4 sm:p-5 ${
         justSaved ? "animate-pop-in" : ""
       }`}
       style={{ animationDelay: justSaved ? "0ms" : `${index * 90}ms` }}
