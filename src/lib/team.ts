@@ -8,18 +8,19 @@ export type TeamSlot = {
   title: string;
   name: string | null;
   photo: string | null;
-  locked: boolean;
+  filled: boolean;
+  updatedAt: number | null;
 };
 
 const STORAGE_KEY = "probably-rag-team-v1";
 
 const DEFAULT_SLOTS: TeamSlot[] = [
-  { id: "m1", role: "member", title: "Team Member 01", name: null, photo: null, locked: false },
-  { id: "m2", role: "member", title: "Team Member 02", name: null, photo: null, locked: false },
-  { id: "m3", role: "member", title: "Team Member 03", name: null, photo: null, locked: false },
-  { id: "m4", role: "member", title: "Team Member 04", name: null, photo: null, locked: false },
-  { id: "s1", role: "supervisor", title: "Supervisor 01", name: null, photo: null, locked: false },
-  { id: "s2", role: "supervisor", title: "Supervisor 02", name: null, photo: null, locked: false },
+  { id: "m1", role: "member", title: "Team Member 01", name: null, photo: null, filled: false, updatedAt: null },
+  { id: "m2", role: "member", title: "Team Member 02", name: null, photo: null, filled: false, updatedAt: null },
+  { id: "m3", role: "member", title: "Team Member 03", name: null, photo: null, filled: false, updatedAt: null },
+  { id: "m4", role: "member", title: "Team Member 04", name: null, photo: null, filled: false, updatedAt: null },
+  { id: "s1", role: "supervisor", title: "Supervisor 01", name: null, photo: null, filled: false, updatedAt: null },
+  { id: "s2", role: "supervisor", title: "Supervisor 02", name: null, photo: null, filled: false, updatedAt: null },
 ];
 
 function read(): TeamSlot[] {
@@ -48,7 +49,9 @@ export function useTeam() {
   const save = useCallback((id: string, name: string, photo: string | null) => {
     setSlots((prev) => {
       const next = prev.map((slot) =>
-        slot.id === id && !slot.locked ? { ...slot, name, photo, locked: true } : slot,
+        slot.id === id
+          ? { ...slot, name, photo, filled: true, updatedAt: Date.now() }
+          : slot,
       );
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -59,7 +62,21 @@ export function useTeam() {
     });
   }, []);
 
-  return { slots, ready, save };
+  const clear = useCallback((id: string) => {
+    setSlots((prev) => {
+      const next = prev.map((slot) =>
+        slot.id === id ? { ...slot, name: null, photo: null, filled: false, updatedAt: null } : slot,
+      );
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* storage full or unavailable */
+      }
+      return next;
+    });
+  }, []);
+
+  return { slots, ready, save, clear };
 }
 
 export function fileToDataUrl(file: File): Promise<string> {
