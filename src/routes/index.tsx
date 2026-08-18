@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { CheckCircle2, Menu, Send, TriangleAlert, X } from "lucide-react";
 
+import { About } from "@/components/About";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
 import { SkeletonPanel, SkeletonSteps, SkeletonTable } from "@/components/Skeletons";
 import { askQuestion, type AskResult } from "@/lib/rag";
 import { useTheme } from "@/lib/theme";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
