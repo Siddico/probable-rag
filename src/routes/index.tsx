@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BadgeCheck,
   BookOpenText,
@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileSearch,
   FileText,
+  Gauge,
   Layers,
   Library,
   Menu,
@@ -20,6 +21,7 @@ import {
   Stethoscope,
   TimerReset,
   Trash2,
+  TrendingUp,
   TriangleAlert,
   Workflow,
   X,
@@ -31,6 +33,14 @@ import { EmptyState, Panel } from "@/components/Panel";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
 import { SkeletonPanel, SkeletonSteps, SkeletonTable } from "@/components/Skeletons";
 import { CORPUS, SUGGESTED_QUESTIONS } from "@/lib/corpus";
+import {
+  buildEntry,
+  buildFailedEntry,
+  confidenceScore,
+  topChunk,
+  useHistory,
+  type HistoryEntry,
+} from "@/lib/history";
 import { askQuestion, type AskResult } from "@/lib/rag";
 import { useTheme } from "@/lib/theme";
 
@@ -64,13 +74,41 @@ const PIPELINE_STEPS = [
   "Structured output validated",
 ];
 
-type HistoryEntry = { query: string; at: number; citations: number; ok: boolean };
-
 function timeAgo(at: number) {
   const s = Math.max(1, Math.round((Date.now() - at) / 1000));
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.round(s / 60)}m ago`;
-  return `${Math.round(s / 3600)}h ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+}
+
+const CONFIDENCE_STYLES: Record<string, string> = {
+  high: "bg-success/15 text-success border-success/30",
+  medium: "bg-warning/15 text-warning border-warning/30",
+  moderate: "bg-warning/15 text-warning border-warning/30",
+  low: "bg-destructive/15 text-destructive border-destructive/30",
+};
+
+function ConfidenceBadge({ value, className = "" }: { value: string; className?: string }) {
+  const style = CONFIDENCE_STYLES[value] ?? "bg-primary/15 text-accent border-border";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${style} ${className}`}
+    >
+      <Gauge className="h-3.5 w-3.5" strokeWidth={2} /> {value} confidence
+    </span>
+  );
+}
+
+function ScoreBadge({ score, className = "" }: { score: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground ${className}`}
+    >
+      <TrendingUp className="h-3.5 w-3.5 text-accent" strokeWidth={2} /> top score{" "}
+      <span className="font-semibold text-foreground">{score.toFixed(3)}</span>
+    </span>
+  );
 }
 
 function Index() {
@@ -83,8 +121,20 @@ function Index() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AskResult | null>(null);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const { history, ready, add, remove, clear } = useHistory();
+  const [restored, setRestored] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Restore the last successful answer after a reload so nothing is lost.
+  useEffect(() => {
+    if (!ready || restored) return;
+    setRestored(true);
+    const last = history.find((e) => e.ok && e.result);
+    if (last?.result) {
+      setResult(last.result);
+      setQuery(last.query);
+    }
+  }, [ready, restored, history]);
 
   const runQuery = async (raw: string) => {
     const q = raw.trim();
@@ -97,25 +147,25 @@ function Index() {
     try {
       const data = await askQuestion(q);
       setResult(data);
-      setHistory((prev) =>
-        [
-          {
-            query: q,
-            at: Date.now(),
-            citations: data.structured_output?.citations?.length ?? 0,
-            ok: true,
-          },
-          ...prev,
-        ].slice(0, 20),
-      );
+      add(buildEntry(q, data));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
-      setHistory((prev) =>
-        [{ query: q, at: Date.now(), citations: 0, ok: false }, ...prev].slice(0, 20),
-      );
+      const message = err instanceof Error ? err.message : "Something went wrong.";
+      setError(message);
+      add(buildFailedEntry(q, message));
     } finally {
       setLoading(false);
     }
+  };
+
+  const openEntry = (entry: HistoryEntry) => {
+    if (entry.result) {
+      setQuery(entry.query);
+      setResult(entry.result);
+      setError(null);
+      setTab("ask");
+      return;
+    }
+    void runQuery(entry.query);
   };
 
   const selectTab = (next: TabId) => {
@@ -126,6 +176,8 @@ function Index() {
   const structured = result?.structured_output;
   const citations = structured?.citations ?? [];
   const chunks = result?.retrieved_chunks ?? [];
+  const confidence = confidenceScore(result ?? undefined);
+  const best = topChunk(result ?? undefined);
 
   const copyJson = async () => {
     if (!structured) return;
@@ -297,6 +349,17 @@ function Index() {
                       <p className="whitespace-pre-wrap text-sm leading-relaxed">
                         {structured.recommendation || "No recommendation returned."}
                       </p>
+                      {(confidence || typeof best?.score === "number") && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                          {confidence && <ConfidenceBadge value={confidence} />}
+                          {typeof best?.score === "number" && <ScoreBadge score={best.score} />}
+                          {best?.section && (
+                            <span className="max-w-full truncate rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                              best match · {best.section}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </Panel>
 
                     <Panel icon={BookOpenText} title="Evidence" hint="Supporting passages summary">
@@ -401,7 +464,9 @@ function Index() {
                     <Panel
                       icon={Layers}
                       title="Retrieved Chunks"
-                      hint={`${chunks.length} passage${chunks.length === 1 ? "" : "s"} ranked`}
+                      hint={`${chunks.length} passage${chunks.length === 1 ? "" : "s"} ranked${
+                        typeof best?.score === "number" ? ` · best ${best.score.toFixed(3)}` : ""
+                      }`}
                     >
                       {chunks.length ? (
                         <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
@@ -444,12 +509,12 @@ function Index() {
             <Panel
               icon={TimerReset}
               title="Query History"
-              hint={`${history.length} question${history.length === 1 ? "" : "s"} this session`}
+              hint={`${history.length} saved question${history.length === 1 ? "" : "s"} — stored on this device`}
               action={
                 history.length ? (
                   <button
                     type="button"
-                    onClick={() => setHistory([])}
+                    onClick={clear}
                     className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Clear
@@ -460,32 +525,74 @@ function Index() {
               {history.length ? (
                 <ul className="flex flex-col gap-3">
                   {history.map((entry, i) => (
-                    <li key={`${entry.at}-${i}`} className="reveal" style={{ animationDelay: `${i * 50}ms` }}>
-                      <button
-                        type="button"
-                        onClick={() => void runQuery(entry.query)}
-                        className="lift group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-border bg-secondary/50 px-4 py-3 text-left"
-                      >
-                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/15 text-xs font-semibold text-accent">
-                          {String(history.length - i).padStart(2, "0")}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm">{entry.query}</span>
-                          <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span>{timeAgo(entry.at)}</span>
-                            <span
-                              className={`rounded-full px-2 py-0.5 ${
-                                entry.ok
-                                  ? "bg-success/15 text-success"
-                                  : "bg-destructive/15 text-destructive"
-                              }`}
-                            >
-                              {entry.ok ? `${entry.citations} citations` : "failed"}
-                            </span>
+                    <li key={entry.id} className="reveal" style={{ animationDelay: `${i * 50}ms` }}>
+                      <div className="lift group rounded-2xl border border-border bg-secondary/50 p-4">
+                        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3">
+                          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/15 text-xs font-semibold text-accent">
+                            {String(history.length - i).padStart(2, "0")}
                           </span>
-                        </span>
-                        <RotateCcw className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:-rotate-90 group-hover:text-accent" />
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => openEntry(entry)}
+                            className="min-w-0 text-left"
+                          >
+                            <span className="block truncate text-sm group-hover:text-accent">
+                              {entry.query}
+                            </span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              {timeAgo(entry.at)} ·{" "}
+                              {new Date(entry.at).toLocaleString(undefined, {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Re-run query"
+                            onClick={() => void runQuery(entry.query)}
+                            className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition-transform duration-300 hover:-rotate-90 hover:text-accent"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Delete entry"
+                            onClick={() => remove(entry.id)}
+                            className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {entry.ok ? (
+                            <>
+                              {entry.confidence && <ConfidenceBadge value={entry.confidence} />}
+                              {typeof entry.topScore === "number" && (
+                                <ScoreBadge score={entry.topScore} />
+                              )}
+                              <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground">
+                                {entry.citations} citation{entry.citations === 1 ? "" : "s"}
+                              </span>
+                              <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground">
+                                {entry.chunks} chunk{entry.chunks === 1 ? "" : "s"}
+                              </span>
+                              {entry.topSection && (
+                                <span className="max-w-full truncate rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                                  {entry.topSection}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-xs text-destructive">
+                              failed
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -493,7 +600,7 @@ function Index() {
                 <EmptyState
                   icon={TimerReset}
                   title="No questions asked yet"
-                  body="Every clinical query you run this session is logged here so you can replay it in one click."
+                  body="Every clinical query is saved on this device with its confidence level and top retrieval score, so you can reopen the full answer any time."
                 />
               )}
             </Panel>
