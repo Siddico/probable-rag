@@ -69,7 +69,7 @@ function TeamCover() {
         }`}
       >
         {cover ? (
-          <div className="relative h-56 w-full overflow-hidden sm:h-72">
+          <div className="relative h-full min-h-56 w-full overflow-hidden">
             <img
               src={cover}
               alt="Probably RAG team group photo"
