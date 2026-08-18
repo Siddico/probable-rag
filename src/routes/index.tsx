@@ -365,20 +365,8 @@ function Index() {
           </section>
         )}
 
-        {tab === "about" && (
-          <section className="glass rounded-3xl p-6 text-sm leading-relaxed text-muted-foreground">
-            <h2 className="mb-4 font-display text-lg text-foreground">About Probably RAG</h2>
-            <p>
-              Probably RAG is a retrieval-augmented clinical decision support interface. Queries are
-              embedded, matched against a curated clinical corpus, re-ranked, and answered only when
-              the retrieved evidence supports a recommendation — otherwise the pipeline refuses.
-            </p>
-            <p className="mt-3">
-              Every answer ships with its evidence, citations, and the raw retrieved chunks so
-              clinicians can audit the reasoning trail.
-            </p>
-          </section>
-        )}
+        {tab === "about" && <About />}
+
       </main>
     </div>
   );
