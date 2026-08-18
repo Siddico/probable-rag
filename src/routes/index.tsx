@@ -78,9 +78,21 @@ function Index() {
   return (
     <div className="min-h-screen md:flex">
       {/* Desktop sidebar */}
-      <aside className="glass sticky top-0 hidden h-screen w-[260px] shrink-0 rounded-none md:block">
-        <SidebarContent active={tab} onSelect={selectTab} theme={theme} onToggleTheme={toggle} />
+      <aside
+        className={`glass sticky top-0 hidden h-screen shrink-0 overflow-hidden rounded-none transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:block ${
+          collapsed ? "w-[84px]" : "w-[260px]"
+        }`}
+      >
+        <SidebarContent
+          active={tab}
+          onSelect={selectTab}
+          theme={theme}
+          onToggleTheme={toggle}
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed((v) => !v)}
+        />
       </aside>
+
 
       {/* Mobile header */}
       <header className="glass sticky top-0 z-30 flex items-center gap-3 rounded-none px-4 py-3 md:hidden">
