@@ -452,12 +452,13 @@ function Index() {
                   >
                     {citations.length ? (
                       <div className="-mx-2 overflow-x-auto px-2">
-                        <table className="w-full min-w-[420px] text-left text-sm">
+                        <table className="w-full min-w-[480px] text-left text-sm">
                           <thead>
                             <tr className="text-xs uppercase tracking-wider text-muted-foreground">
                               <th className="pb-3 pr-4 font-medium">#</th>
                               <th className="pb-3 pr-4 font-medium">Document</th>
-                              <th className="pb-3 font-medium">Section</th>
+                              <th className="pb-3 pr-4 font-medium">Section</th>
+                              <th className="pb-3 font-medium">Page</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -467,12 +468,20 @@ function Index() {
                                   {String(i + 1).padStart(2, "0")}
                                 </td>
                                 <td className="py-3 pr-4">{c.document ?? "—"}</td>
-                                <td className="py-3 text-muted-foreground">{c.section ?? "—"}</td>
+                                <td className="py-3 pr-4 text-muted-foreground">
+                                  {c.section ?? "—"}
+                                </td>
+                                <td className="py-3 text-xs text-muted-foreground">
+                                  {typeof c["page"] === "string" || typeof c["page"] === "number"
+                                    ? String(c["page"])
+                                    : "—"}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
+
                     ) : (
                       <EmptyState
                         icon={Quote}
