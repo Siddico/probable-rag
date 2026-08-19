@@ -174,6 +174,7 @@ function Index() {
     if (entry.result) {
       setQuery(entry.query);
       setResult(entry.result);
+      setLatency(null);
       setError(null);
       setTab("ask");
       return;
@@ -186,6 +187,7 @@ function Index() {
     if (next === "ask") {
       setQuery("");
       setResult(null);
+      setLatency(null);
       setError(null);
     }
     setTab(next);
