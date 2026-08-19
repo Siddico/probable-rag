@@ -1,11 +1,15 @@
 export const API_URL =
-  import.meta.env["VITE_API_URL"] || "https://funny-phones-speak.loca.lt";
+  import.meta.env["VITE_API_URL"] || "https://frontend-fawn-three-88.vercel.app";
 
 // localtunnel shows an interstitial page unless this header is present.
+// Vercel doesn't need it (and a custom header would force a CORS preflight).
 const BASE_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
-  "bypass-tunnel-reminder": "true",
+  ...(/\.loca\.lt$/i.test(new URL(API_URL).hostname)
+    ? { "bypass-tunnel-reminder": "true" }
+    : {}),
 };
+
 
 export type Citation = {
   document?: string;
@@ -84,9 +88,13 @@ export async function askQuestion(query: string): Promise<AskResult> {
   if (res.status === 503) {
     throw new Error("The pipeline is still initializing on the server. Try again in a few seconds.");
   }
+  if (res.status === 400) {
+    throw new Error("Please type a question before asking.");
+  }
   if (res.status >= 500) {
     throw new Error(`Server error (${res.status}). The pipeline failed while answering.`);
   }
+
   if (!res.ok) {
     throw new Error(`Request failed (${res.status}). The pipeline did not return a result.`);
   }
