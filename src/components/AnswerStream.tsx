@@ -47,11 +47,35 @@ export function StreamedText({
   );
 }
 
-const METRICS: { key: keyof SafetyAnalysis; label: string; icon: typeof Snowflake }[] = [
-  { key: "confidence_score", label: "Confidence Threshold", icon: Snowflake },
-  { key: "citation_accuracy", label: "Citation Accuracy", icon: CheckCircle2 },
-  { key: "faithfulness", label: "Faithfulness", icon: Scale },
+const METRICS: {
+  key: keyof SafetyAnalysis;
+  label: string;
+  question: string;
+  icon: typeof Snowflake;
+}[] = [
+  {
+    key: "confidence_score",
+    label: "Confidence",
+    question: "How sure is the model about this answer?",
+    icon: Snowflake,
+  },
+  {
+    key: "citation_accuracy",
+    label: "Citation Accuracy",
+    question: "Does the citation match a real, correct source location?",
+    icon: CheckCircle2,
+  },
+  {
+    key: "faithfulness",
+    label: "Faithfulness",
+    question: "Does the answer contain only facts present in the retrieved text?",
+    icon: Scale,
+  },
 ];
+
+function pct(v: unknown) {
+  return typeof v === "number" ? Math.max(0, Math.min(1, v)) : null;
+}
 
 export function SafetyAnalysisBlock({ safety }: { safety: SafetyAnalysis }) {
   return (
@@ -69,27 +93,39 @@ export function SafetyAnalysisBlock({ safety }: { safety: SafetyAnalysis }) {
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {METRICS.map(({ key, label, icon: Icon }, i) => {
-          const value = safety[key];
+      <div className="grid gap-3 sm:grid-cols-3">
+        {METRICS.map(({ key, label, question, icon: Icon }, i) => {
+          const value = pct(safety[key]);
           return (
-            <span
+            <article
               key={label}
-              className="reveal inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1.5 text-xs font-medium text-muted-foreground"
-              style={{ animationDelay: `${i * 70}ms` }}
+              className="lift reveal flex flex-col gap-2 rounded-xl border border-border bg-background/40 p-4"
+              style={{ animationDelay: `${i * 90}ms` }}
             >
-              <Icon className="h-3.5 w-3.5 text-accent" strokeWidth={2} />
-              {label}
-              <span className="font-semibold text-foreground">
-                {typeof value === "number" ? value.toFixed(2) : "N/A"}
-              </span>
-            </span>
+              <div className="flex items-center gap-2">
+                <Icon className="h-3.5 w-3.5 shrink-0 text-accent" strokeWidth={2} />
+                <p className="truncate font-display text-xs font-semibold tracking-[0.06em]">
+                  {label}
+                </p>
+              </div>
+              <p className="font-display text-2xl font-semibold">
+                {value === null ? "N/A" : value.toFixed(2)}
+              </p>
+              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full gradient-primary transition-[width] duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  style={{ width: `${(value ?? 0) * 100}%` }}
+                />
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">{question}</p>
+            </article>
           );
         })}
       </div>
     </div>
   );
 }
+
 
 /** Compact inline pipeline trace — one row instead of a tall static card. */
 export function PipelineStrip({
