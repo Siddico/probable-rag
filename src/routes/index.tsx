@@ -17,7 +17,6 @@ import {
   RotateCcw,
   Send,
   Sparkles,
-  Stethoscope,
   TimerReset,
   Trash2,
   TrendingUp,
