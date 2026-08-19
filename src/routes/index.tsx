@@ -567,24 +567,51 @@ function Index() {
                   <Panel
                     icon={Braces}
                     title="Raw structured output"
-                    hint="Validated JSON payload"
+                    hint={
+                      jsonView === "structured"
+                        ? "Validated JSON payload"
+                        : "Unparsed model output (raw_json)"
+                    }
                     collapsible
                     defaultOpen={false}
                     action={
-                      <button
-                        type="button"
-                        onClick={() => void copyJson()}
-                        className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        {copied ? "Copied" : "Copy"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {result?.raw_json && (
+                          <div className="flex rounded-lg border border-border bg-secondary/60 p-0.5 text-xs">
+                            {(["structured", "raw"] as const).map((v) => (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => setJsonView(v)}
+                                className={`rounded-md px-2 py-1 capitalize transition-colors duration-300 ${
+                                  jsonView === v
+                                    ? "gradient-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void copyJson()}
+                          className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          {copied ? "Copied" : "Copy"}
+                        </button>
+                      </div>
                     }
                   >
                     <pre className="max-h-80 overflow-auto rounded-xl bg-secondary/60 p-4 text-xs leading-relaxed">
-                      {JSON.stringify(structured, null, 2)}
+                      {jsonView === "raw" && result?.raw_json
+                        ? result.raw_json
+                        : JSON.stringify(structured, null, 2)}
                     </pre>
                   </Panel>
+
                   </div>
 
                 </>
