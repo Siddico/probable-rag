@@ -574,7 +574,7 @@ function Index() {
 
                   <Panel
                     icon={Braces}
-                    title="Raw structured output"
+                    title="Raw JSON"
                     hint={
                       jsonView === "structured"
                         ? "Validated JSON payload"
