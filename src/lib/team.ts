@@ -77,7 +77,10 @@ export function useTeam() {
     );
     void supabase
       .from("team_profiles")
-      .upsert({ slot_id: id, name, photo, updated_at: new Date().toISOString() });
+      .upsert({ slot_id: id, name, photo, updated_at: new Date().toISOString() })
+      .then(({ error }) => {
+        if (error) console.error("[team] save failed", error.message);
+      });
   }, []);
 
   const clear = useCallback((id: string) => {
@@ -124,7 +127,10 @@ export function useTeamCover() {
     setCover(dataUrl);
     void supabase
       .from("team_profiles")
-      .upsert({ slot_id: COVER_SLOT, photo: dataUrl, updated_at: new Date().toISOString() });
+      .upsert({ slot_id: COVER_SLOT, photo: dataUrl, updated_at: new Date().toISOString() })
+      .then(({ error }) => {
+        if (error) console.error("[team] cover save failed", error.message);
+      });
   }, []);
 
   const clearCover = useCallback(() => {
