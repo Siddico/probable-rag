@@ -39,7 +39,7 @@ import {
   useHistory,
   type HistoryEntry,
 } from "@/lib/history";
-import { askQuestion, type AskResult } from "@/lib/rag";
+import { askQuestion, fetchStatus, type AskResult, type PipelineStatus } from "@/lib/rag";
 import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/")({
@@ -122,6 +122,11 @@ function Index() {
   const { history, ready, add, remove, clear } = useHistory();
   const [restored, setRestored] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<PipelineStatus | null>(null);
+
+  useEffect(() => {
+    void fetchStatus().then(setStatus);
+  }, []);
 
   // Restore the last successful answer after a reload so nothing is lost.
   useEffect(() => {
@@ -287,6 +292,23 @@ function Index() {
                   <Send className={`h-4 w-4 ${loading ? "animate-pulse-soft" : ""}`} />
                   {loading ? "Asking..." : "Ask"}
                 </button>
+              </div>
+
+              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    status?.pipeline_ready
+                      ? "bg-success"
+                      : status
+                        ? "bg-warning animate-pulse-soft"
+                        : "bg-destructive animate-pulse-soft"
+                  }`}
+                />
+                {status?.pipeline_ready
+                  ? "Backend ready · retriever connected"
+                  : status
+                    ? "Backend reachable · pipeline still initializing"
+                    : "Backend unreachable — start the server / tunnel"}
               </div>
 
               {!structured && !loading && (
