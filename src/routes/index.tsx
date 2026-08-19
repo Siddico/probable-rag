@@ -119,8 +119,7 @@ function Index() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AskResult | null>(null);
-  const { history, ready, add, remove, clear } = useHistory();
-  const [restored, setRestored] = useState(false);
+  const { history, add, remove, clear } = useHistory();
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<PipelineStatus | null>(null);
 
@@ -128,16 +127,6 @@ function Index() {
     void fetchStatus().then(setStatus);
   }, []);
 
-  // Restore the last successful answer after a reload so nothing is lost.
-  useEffect(() => {
-    if (!ready || restored) return;
-    setRestored(true);
-    const last = history.find((e) => e.ok && e.result);
-    if (last?.result) {
-      setResult(last.result);
-      setQuery(last.query);
-    }
-  }, [ready, restored, history]);
 
   const runQuery = async (raw: string) => {
     const q = raw.trim();
@@ -172,9 +161,16 @@ function Index() {
   };
 
   const selectTab = (next: TabId) => {
+    // Opening "Ask" always starts a fresh question — past answers live in History.
+    if (next === "ask") {
+      setQuery("");
+      setResult(null);
+      setError(null);
+    }
     setTab(next);
     setDrawerOpen(false);
   };
+
 
   const structured = result?.structured_output;
   const citations = structured?.citations ?? [];
@@ -268,7 +264,7 @@ function Index() {
         </div>
 
         {tab === "ask" && (
-          <div className="mx-auto flex w-full max-w-3xl flex-col">
+          <div className="flex w-full min-w-0 flex-col">
             <section className="glass reveal mb-6 rounded-3xl p-5 md:p-6">
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <div className="relative min-w-0">
@@ -374,7 +370,9 @@ function Index() {
                     )}
                   </Panel>
 
+                  <div className="grid min-w-0 gap-5 xl:grid-cols-2">
                   <Panel
+
                     icon={BookOpenText}
                     title="Evidence"
                     hint="Supporting passages summary"
@@ -484,6 +482,8 @@ function Index() {
                       {JSON.stringify(structured, null, 2)}
                     </pre>
                   </Panel>
+                  </div>
+
                 </>
               ) : (
                 <div className="reveal flex flex-col items-center gap-3 py-10 text-center">
