@@ -85,6 +85,7 @@ const CONFIDENCE_STYLES: Record<string, string> = {
   medium: "bg-warning/15 text-warning border-warning/30",
   moderate: "bg-warning/15 text-warning border-warning/30",
   low: "bg-destructive/15 text-destructive border-destructive/30",
+  none: "bg-muted/40 text-muted-foreground border-border",
 };
 
 function ConfidenceBadge({ value, className = "" }: { value: string; className?: string }) {
@@ -109,6 +110,26 @@ function ScoreBadge({ score, className = "" }: { score: number; className?: stri
   );
 }
 
+/** Dense / BM25 sub-score bar for a retrieved chunk. */
+function SubScore({ label, value }: { label: string; value: number }) {
+  const v = Math.max(0, Math.min(1, value));
+  return (
+    <div className="min-w-[92px] flex-1">
+      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span>{label}</span>
+        <span className="font-semibold text-foreground">{value.toFixed(3)}</span>
+      </div>
+      <div className="h-1 overflow-hidden rounded-full bg-secondary">
+        <div
+          className="h-full rounded-full gradient-primary transition-[width] duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ width: `${v * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+
 function Index() {
   const { theme, toggle } = useTheme();
   const [tab, setTab] = useState<TabId>("ask");
@@ -122,6 +143,8 @@ function Index() {
   const { history, add, remove, clear } = useHistory();
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<PipelineStatus | null>(null);
+  const [jsonView, setJsonView] = useState<"structured" | "raw">("structured");
+
 
   useEffect(() => {
     void fetchStatus().then(setStatus);
@@ -179,11 +202,14 @@ function Index() {
   const best = topChunk(result ?? undefined);
 
   const copyJson = async () => {
-    if (!structured) return;
-    await navigator.clipboard.writeText(JSON.stringify(structured, null, 2));
+    const payload =
+      jsonView === "raw" && result?.raw_json ? result.raw_json : JSON.stringify(structured, null, 2);
+    if (!payload) return;
+    await navigator.clipboard.writeText(payload);
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };
+
 
   return (
     <div className="min-h-screen md:flex">
@@ -290,22 +316,43 @@ function Index() {
                 </button>
               </div>
 
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    status?.pipeline_ready
-                      ? "bg-success"
-                      : status
-                        ? "bg-warning animate-pulse-soft"
-                        : "bg-destructive animate-pulse-soft"
-                  }`}
-                />
-                {status?.pipeline_ready
-                  ? "Backend ready · retriever connected"
-                  : status
-                    ? "Backend reachable · pipeline still initializing"
-                    : "Backend unreachable — start the server / tunnel"}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      status?.pipeline_ready
+                        ? "bg-success"
+                        : status
+                          ? "bg-warning animate-pulse-soft"
+                          : "bg-destructive animate-pulse-soft"
+                    }`}
+                  />
+                  {status?.pipeline_ready
+                    ? "Backend ready"
+                    : status
+                      ? "Backend reachable · pipeline still initializing"
+                      : "Backend unreachable — start the server"}
+                </span>
+                {status && (
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {(
+                      [
+                        ["pipeline", status.pipeline_ready],
+                        ["retriever", status.retriever_connected],
+                        ["api keys", status.has_keys],
+                      ] as const
+                    ).map(([label, ok]) => (
+                      <span key={label} className="inline-flex items-center gap-1.5">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-success" : "bg-destructive"}`}
+                        />
+                        {label}
+                      </span>
+                    ))}
+                  </span>
+                )}
               </div>
+
 
               {!structured && !loading && (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -343,6 +390,17 @@ function Index() {
                 </>
               ) : structured ? (
                 <>
+                  {!chunks.length && (
+                    <div className="reveal flex items-start gap-3 rounded-3xl border border-warning/40 bg-warning/10 p-5 text-sm">
+                      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                      <p className="leading-relaxed">
+                        <strong className="font-semibold">Generation guarded.</strong> No passage
+                        passed the 0.35 retrieval threshold, so the pipeline refused to answer from
+                        outside the corpus instead of guessing.
+                      </p>
+                    </div>
+                  )}
+
                   <Panel
                     icon={BadgeCheck}
                     title="Recommendation"
@@ -365,10 +423,17 @@ function Index() {
                         )}
                       </div>
                     )}
-                    {structured.safety_analysis && (
+                    {structured.safety_analysis ? (
                       <SafetyAnalysisBlock safety={structured.safety_analysis} />
+                    ) : (
+                      <p className="mt-4 rounded-2xl border border-dashed border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                        Safety analysis not returned for this answer — the quality gate reports
+                        confidence, citation accuracy and faithfulness whenever the backend attaches
+                        <code className="mx-1 rounded bg-secondary px-1">safety_analysis</code>.
+                      </p>
                     )}
                   </Panel>
+
 
                   <div className="grid min-w-0 gap-5 xl:grid-cols-2">
                   <Panel
@@ -392,12 +457,13 @@ function Index() {
                   >
                     {citations.length ? (
                       <div className="-mx-2 overflow-x-auto px-2">
-                        <table className="w-full min-w-[420px] text-left text-sm">
+                        <table className="w-full min-w-[480px] text-left text-sm">
                           <thead>
                             <tr className="text-xs uppercase tracking-wider text-muted-foreground">
                               <th className="pb-3 pr-4 font-medium">#</th>
                               <th className="pb-3 pr-4 font-medium">Document</th>
-                              <th className="pb-3 font-medium">Section</th>
+                              <th className="pb-3 pr-4 font-medium">Section</th>
+                              <th className="pb-3 font-medium">Page</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -407,12 +473,20 @@ function Index() {
                                   {String(i + 1).padStart(2, "0")}
                                 </td>
                                 <td className="py-3 pr-4">{c.document ?? "—"}</td>
-                                <td className="py-3 text-muted-foreground">{c.section ?? "—"}</td>
+                                <td className="py-3 pr-4 text-muted-foreground">
+                                  {c.section ?? "—"}
+                                </td>
+                                <td className="py-3 text-xs text-muted-foreground">
+                                  {typeof c["page"] === "string" || typeof c["page"] === "number"
+                                    ? String(c["page"])
+                                    : "—"}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
+
                     ) : (
                       <EmptyState
                         icon={Quote}
@@ -432,21 +506,57 @@ function Index() {
                     defaultOpen={false}
                   >
                     {chunks.length ? (
-                      <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
-                        {chunks.slice(0, 5).map((chunk, i) => (
+                      <div className="flex max-h-[460px] flex-col gap-3 overflow-y-auto pr-1">
+                        {chunks.map((chunk, i) => (
                           <article
-                            key={i}
-                            className="lift rounded-xl border border-border bg-secondary/50 p-4"
+                            key={chunk.chunk_id ?? i}
+                            className="lift reveal rounded-xl border border-border bg-secondary/50 p-4"
+                            style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
                           >
                             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                               <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
-                                {chunk.metadata?.section ?? "Unlabeled section"}
+                                {chunk.metadata?.section_path ??
+                                  chunk.metadata?.section ??
+                                  (chunk.metadata?.["metadata"] as { section?: string } | undefined)
+                                    ?.section ??
+                                  "Unlabeled section"}
+
                               </p>
                               <span className="shrink-0 rounded-full bg-primary/20 px-2.5 py-1 text-xs text-accent">
                                 {typeof chunk.score === "number" ? chunk.score.toFixed(3) : "—"}
                               </span>
                             </div>
-                            <p className="text-xs leading-relaxed text-muted-foreground">
+
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                              {chunk.chunk_id && (
+                                <span className="max-w-full truncate rounded-full border border-border bg-background/40 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                                  {chunk.chunk_id}
+                                </span>
+                              )}
+                              {chunk.metadata?.document && (
+                                <span className="max-w-full truncate rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                                  {chunk.metadata.document}
+                                </span>
+                              )}
+                              {chunk.metadata?.is_reference && (
+                                <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] text-warning">
+                                  reference list
+                                </span>
+                              )}
+                            </div>
+
+                            {(typeof chunk.dense === "number" || typeof chunk.bm25 === "number") && (
+                              <div className="mb-3 flex flex-wrap gap-3">
+                                {typeof chunk.dense === "number" && (
+                                  <SubScore label="dense" value={chunk.dense} />
+                                )}
+                                {typeof chunk.bm25 === "number" && (
+                                  <SubScore label="bm25" value={chunk.bm25} />
+                                )}
+                              </div>
+                            )}
+
+                            <p className="line-clamp-6 text-xs leading-relaxed text-muted-foreground">
                               {chunk.text ?? "—"}
                             </p>
                           </article>
@@ -455,33 +565,61 @@ function Index() {
                     ) : (
                       <EmptyState
                         icon={Layers}
-                        title="No passages yet"
-                        body="Chunks retrieved for a query, with their similarity scores, will appear here."
+                        title="No passages above threshold"
+                        body="Nothing scored above the 0.35 retrieval threshold, so the pipeline blocked generation instead of answering ungrounded."
                       />
                     )}
+
                   </Panel>
 
                   <Panel
                     icon={Braces}
-                    title="Raw structured output"
-                    hint="Validated JSON payload"
+                    title="Raw JSON"
+                    hint={
+                      jsonView === "structured"
+                        ? "Validated JSON payload"
+                        : "Unparsed model output (raw_json)"
+                    }
                     collapsible
                     defaultOpen={false}
                     action={
-                      <button
-                        type="button"
-                        onClick={() => void copyJson()}
-                        className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        {copied ? "Copied" : "Copy"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {result?.raw_json && (
+                          <div className="flex rounded-lg border border-border bg-secondary/60 p-0.5 text-xs">
+                            {(["structured", "raw"] as const).map((v) => (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => setJsonView(v)}
+                                className={`rounded-md px-2 py-1 capitalize transition-colors duration-300 ${
+                                  jsonView === v
+                                    ? "gradient-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void copyJson()}
+                          className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          {copied ? "Copied" : "Copy"}
+                        </button>
+                      </div>
                     }
                   >
                     <pre className="max-h-80 overflow-auto rounded-xl bg-secondary/60 p-4 text-xs leading-relaxed">
-                      {JSON.stringify(structured, null, 2)}
+                      {jsonView === "raw" && result?.raw_json
+                        ? result.raw_json
+                        : JSON.stringify(structured, null, 2)}
                     </pre>
                   </Panel>
+
                   </div>
 
                 </>
