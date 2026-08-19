@@ -517,7 +517,10 @@ function Index() {
                               <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
                                 {chunk.metadata?.section_path ??
                                   chunk.metadata?.section ??
+                                  (chunk.metadata?.["metadata"] as { section?: string } | undefined)
+                                    ?.section ??
                                   "Unlabeled section"}
+
                               </p>
                               <span className="shrink-0 rounded-full bg-primary/20 px-2.5 py-1 text-xs text-accent">
                                 {typeof chunk.score === "number" ? chunk.score.toFixed(3) : "—"}
