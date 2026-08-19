@@ -266,7 +266,7 @@ function TeamCard({
                 <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full gradient-primary text-primary-foreground">
                   <Check className="h-2.5 w-2.5" />
                 </span>
-                Profile saved · editable anytime
+                Saved to the cloud · visible to everyone
               </>
             ) : (
               <>
@@ -408,7 +408,7 @@ export function About() {
           <div>
             <h3 className="font-display text-lg font-semibold">The Team</h3>
             <p className="text-xs text-muted-foreground">
-              Four builders behind the pipeline — every profile stays editable.
+              Four builders behind the pipeline — names and photos sync live for every visitor.
             </p>
           </div>
         </header>
