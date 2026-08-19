@@ -25,7 +25,8 @@ import {
 } from "lucide-react";
 
 import { About } from "@/components/About";
-import { PipelineStrip, SafetyAnalysisBlock, StreamedText } from "@/components/AnswerStream";
+import { SafetyAnalysisBlock, StreamedText } from "@/components/AnswerStream";
+import { PipelineFlow } from "@/components/PipelineFlow";
 import { Logo } from "@/components/Logo";
 import { EmptyState, Panel } from "@/components/Panel";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
