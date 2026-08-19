@@ -443,7 +443,7 @@ function Index() {
                   </Panel>
 
 
-                  <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+                  <div className="grid min-w-0 items-start gap-5 xl:grid-cols-2">
                   <Panel
 
                     icon={BookOpenText}

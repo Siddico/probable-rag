@@ -412,7 +412,7 @@ export function About() {
             </p>
           </div>
         </header>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid items-start gap-4 sm:grid-cols-2">
           {ready &&
             members.map((slot, i) => (
               <TeamCard key={slot.id} slot={slot} index={i} onSave={save} onClear={clear} />
@@ -430,7 +430,7 @@ export function About() {
             <p className="text-xs text-muted-foreground">Academic and clinical oversight.</p>
           </div>
         </header>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid items-start gap-4 sm:grid-cols-2">
           {ready &&
             supervisors.map((slot, i) => (
               <TeamCard key={slot.id} slot={slot} index={i} onSave={save} onClear={clear} />
