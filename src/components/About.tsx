@@ -33,8 +33,8 @@ function TeamCover() {
       setError("Please choose an image file.");
       return;
     }
-    if (file.size > 2_500_000) {
-      setError("Please choose an image under 2.5 MB.");
+    if (file.size > 8_000_000) {
+      setError("Please choose an image under 8 MB.");
       return;
     }
     try {
@@ -114,7 +114,7 @@ function TeamCover() {
               Upload a team photo
             </span>
             <span className="relative text-xs text-muted-foreground">
-              Drag &amp; drop or click to browse · PNG or JPG up to 2.5 MB
+              Drag &amp; drop or click to browse · PNG or JPG up to 8 MB · shared with everyone
             </span>
           </button>
         )}
@@ -175,8 +175,8 @@ function TeamCard({
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
-    if (file.size > 1_500_000) {
-      setError("Please choose an image under 1.5 MB.");
+    if (file.size > 8_000_000) {
+      setError("Please choose an image under 8 MB.");
       return;
     }
     try {
@@ -266,7 +266,7 @@ function TeamCard({
                 <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full gradient-primary text-primary-foreground">
                   <Check className="h-2.5 w-2.5" />
                 </span>
-                Profile saved · editable anytime
+                Saved to the cloud · visible to everyone
               </>
             ) : (
               <>
@@ -408,11 +408,11 @@ export function About() {
           <div>
             <h3 className="font-display text-lg font-semibold">The Team</h3>
             <p className="text-xs text-muted-foreground">
-              Four builders behind the pipeline — every profile stays editable.
+              Four builders behind the pipeline — names and photos sync live for every visitor.
             </p>
           </div>
         </header>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid items-start gap-4 sm:grid-cols-2">
           {ready &&
             members.map((slot, i) => (
               <TeamCard key={slot.id} slot={slot} index={i} onSave={save} onClear={clear} />
@@ -430,7 +430,7 @@ export function About() {
             <p className="text-xs text-muted-foreground">Academic and clinical oversight.</p>
           </div>
         </header>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid items-start gap-4 sm:grid-cols-2">
           {ready &&
             supervisors.map((slot, i) => (
               <TeamCard key={slot.id} slot={slot} index={i} onSave={save} onClear={clear} />

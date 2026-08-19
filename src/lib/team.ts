@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { supabase } from "@/integrations/supabase/client";
+
 export type Role = "member" | "supervisor";
 
 export type TeamSlot = {
@@ -12,7 +14,7 @@ export type TeamSlot = {
   updatedAt: number | null;
 };
 
-const STORAGE_KEY = "probably-rag-team-v1";
+const COVER_SLOT = "cover";
 
 const DEFAULT_SLOTS: TeamSlot[] = [
   { id: "m1", role: "member", title: "Team Member 01", name: null, photo: null, filled: false, updatedAt: null },
@@ -23,105 +25,147 @@ const DEFAULT_SLOTS: TeamSlot[] = [
   { id: "s2", role: "supervisor", title: "Supervisor 02", name: null, photo: null, filled: false, updatedAt: null },
 ];
 
-function read(): TeamSlot[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_SLOTS;
-    const parsed = JSON.parse(raw) as TeamSlot[];
-    return DEFAULT_SLOTS.map((slot) => {
-      const found = parsed.find((p) => p.id === slot.id);
-      return found ? { ...slot, ...found, id: slot.id, role: slot.role } : slot;
-    });
-  } catch {
-    return DEFAULT_SLOTS;
-  }
+type Row = { slot_id: string; name: string | null; photo: string | null; updated_at: string };
+
+async function fetchRows(): Promise<Row[]> {
+  const { data } = await supabase.from("team_profiles").select("slot_id, name, photo, updated_at");
+  return (data ?? []) as Row[];
 }
 
+function merge(rows: Row[]): TeamSlot[] {
+  return DEFAULT_SLOTS.map((slot) => {
+    const row = rows.find((r) => r.slot_id === slot.id);
+    if (!row || (!row.name && !row.photo)) return slot;
+    return {
+      ...slot,
+      name: row.name,
+      photo: row.photo,
+      filled: Boolean(row.name),
+      updatedAt: new Date(row.updated_at).getTime(),
+    };
+  });
+}
+
+/** Shared team directory — stored in the cloud so every visitor sees the same people. */
 export function useTeam() {
   const [slots, setSlots] = useState<TeamSlot[]>(DEFAULT_SLOTS);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    setSlots(read());
+  const refresh = useCallback(async () => {
+    setSlots(merge(await fetchRows()));
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    void refresh();
+    const channel = supabase
+      .channel("team_profiles_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "team_profiles" }, () => {
+        void refresh();
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [refresh]);
+
   const save = useCallback((id: string, name: string, photo: string | null) => {
-    setSlots((prev) => {
-      const next = prev.map((slot) =>
-        slot.id === id
-          ? { ...slot, name, photo, filled: true, updatedAt: Date.now() }
-          : slot,
-      );
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        /* storage full or unavailable */
-      }
-      return next;
-    });
+    setSlots((prev) =>
+      prev.map((slot) =>
+        slot.id === id ? { ...slot, name, photo, filled: true, updatedAt: Date.now() } : slot,
+      ),
+    );
+    void supabase
+      .from("team_profiles")
+      .upsert({ slot_id: id, name, photo, updated_at: new Date().toISOString() });
   }, []);
 
   const clear = useCallback((id: string) => {
-    setSlots((prev) => {
-      const next = prev.map((slot) =>
+    setSlots((prev) =>
+      prev.map((slot) =>
         slot.id === id ? { ...slot, name: null, photo: null, filled: false, updatedAt: null } : slot,
-      );
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        /* storage full or unavailable */
-      }
-      return next;
-    });
+      ),
+    );
+    void supabase.from("team_profiles").delete().eq("slot_id", id);
   }, []);
 
   return { slots, ready, save, clear };
 }
 
-const COVER_KEY = "probably-rag-team-cover-v1";
-
+/** Shared group photo for the About header. */
 export function useTeamCover() {
   const [cover, setCover] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    try {
-      setCover(localStorage.getItem(COVER_KEY));
-    } catch {
-      /* unavailable */
-    }
+  const refresh = useCallback(async () => {
+    const { data } = await supabase
+      .from("team_profiles")
+      .select("photo")
+      .eq("slot_id", COVER_SLOT)
+      .maybeSingle();
+    setCover((data as { photo: string | null } | null)?.photo ?? null);
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    void refresh();
+    const channel = supabase
+      .channel("team_cover_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "team_profiles" }, () => {
+        void refresh();
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [refresh]);
+
   const saveCover = useCallback((dataUrl: string) => {
     setCover(dataUrl);
-    try {
-      localStorage.setItem(COVER_KEY, dataUrl);
-    } catch {
-      /* storage full */
-    }
+    void supabase
+      .from("team_profiles")
+      .upsert({ slot_id: COVER_SLOT, photo: dataUrl, updated_at: new Date().toISOString() });
   }, []);
 
   const clearCover = useCallback(() => {
     setCover(null);
-    try {
-      localStorage.removeItem(COVER_KEY);
-    } catch {
-      /* unavailable */
-    }
+    void supabase.from("team_profiles").delete().eq("slot_id", COVER_SLOT);
   }, []);
 
   return { cover, ready, saveCover, clearCover };
 }
 
-
-
-export function fileToDataUrl(file: File): Promise<string> {
+function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(new Error("Could not read the image file."));
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Reads an image and downscales it to a compact JPEG data URL so shared
+ * profiles stay small enough to sync instantly for everyone.
+ */
+export async function fileToDataUrl(file: File, maxSize = 900): Promise<string> {
+  const raw = await readAsDataUrl(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("decode failed"));
+      el.src = raw;
+    });
+    const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return raw;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.82);
+  } catch {
+    return raw;
+  }
 }

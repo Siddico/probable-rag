@@ -25,7 +25,8 @@ import {
 } from "lucide-react";
 
 import { About } from "@/components/About";
-import { PipelineStrip, SafetyAnalysisBlock, StreamedText } from "@/components/AnswerStream";
+import { SafetyAnalysisBlock, StreamedText } from "@/components/AnswerStream";
+import { PipelineFlow } from "@/components/PipelineFlow";
 import { Logo } from "@/components/Logo";
 import { EmptyState, Panel } from "@/components/Panel";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
@@ -64,13 +65,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const PIPELINE_STEPS = [
-  "Query normalized and embedded",
-  "Retriever connected",
-  "Top-k chunks re-ranked",
-  "Refusal logic strictly enforced",
-  "Structured output validated",
-];
 
 function timeAgo(at: number) {
   const s = Math.max(1, Math.round((Date.now() - at) / 1000));
@@ -144,6 +138,7 @@ function Index() {
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<PipelineStatus | null>(null);
   const [jsonView, setJsonView] = useState<"structured" | "raw">("structured");
+  const [latency, setLatency] = useState<number | null>(null);
 
 
   useEffect(() => {
@@ -159,8 +154,11 @@ function Index() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setLatency(null);
+    const startedAt = Date.now();
     try {
       const data = await askQuestion(q);
+      setLatency(Date.now() - startedAt);
       setResult(data);
       add(buildEntry(q, data));
     } catch (err) {
@@ -176,6 +174,7 @@ function Index() {
     if (entry.result) {
       setQuery(entry.query);
       setResult(entry.result);
+      setLatency(null);
       setError(null);
       setTab("ask");
       return;
@@ -188,6 +187,7 @@ function Index() {
     if (next === "ask") {
       setQuery("");
       setResult(null);
+      setLatency(null);
       setError(null);
     }
     setTab(next);
@@ -380,7 +380,15 @@ function Index() {
               </div>
             )}
 
-            <PipelineStrip steps={PIPELINE_STEPS} loading={loading} done={!!structured} />
+            <PipelineFlow
+              loading={loading}
+              done={!!structured}
+              latencyMs={latency}
+              chunkCount={chunks.length}
+              topScore={typeof best?.score === "number" ? best.score : null}
+              refused={!chunks.length}
+            />
+
 
             <div className="flex min-w-0 flex-col gap-5">
               {loading ? (
@@ -435,7 +443,7 @@ function Index() {
                   </Panel>
 
 
-                  <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+                  <div className="grid min-w-0 items-start gap-5 xl:grid-cols-2">
                   <Panel
 
                     icon={BookOpenText}
