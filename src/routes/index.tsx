@@ -202,11 +202,14 @@ function Index() {
   const best = topChunk(result ?? undefined);
 
   const copyJson = async () => {
-    if (!structured) return;
-    await navigator.clipboard.writeText(JSON.stringify(structured, null, 2));
+    const payload =
+      jsonView === "raw" && result?.raw_json ? result.raw_json : JSON.stringify(structured, null, 2);
+    if (!payload) return;
+    await navigator.clipboard.writeText(payload);
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };
+
 
   return (
     <div className="min-h-screen md:flex">
