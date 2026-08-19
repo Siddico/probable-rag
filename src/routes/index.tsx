@@ -144,6 +144,7 @@ function Index() {
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<PipelineStatus | null>(null);
   const [jsonView, setJsonView] = useState<"structured" | "raw">("structured");
+  const [latency, setLatency] = useState<number | null>(null);
 
 
   useEffect(() => {
@@ -159,8 +160,11 @@ function Index() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setLatency(null);
+    const startedAt = Date.now();
     try {
       const data = await askQuestion(q);
+      setLatency(Date.now() - startedAt);
       setResult(data);
       add(buildEntry(q, data));
     } catch (err) {
