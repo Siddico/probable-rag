@@ -384,7 +384,15 @@ function Index() {
               </div>
             )}
 
-            <PipelineStrip steps={PIPELINE_STEPS} loading={loading} done={!!structured} />
+            <PipelineFlow
+              loading={loading}
+              done={!!structured}
+              latencyMs={latency}
+              chunkCount={chunks.length}
+              topScore={typeof best?.score === "number" ? best.score : null}
+              refused={!chunks.length}
+            />
+
 
             <div className="flex min-w-0 flex-col gap-5">
               {loading ? (
