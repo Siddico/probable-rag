@@ -88,9 +88,13 @@ export async function askQuestion(query: string): Promise<AskResult> {
   if (res.status === 503) {
     throw new Error("The pipeline is still initializing on the server. Try again in a few seconds.");
   }
+  if (res.status === 400) {
+    throw new Error("Please type a question before asking.");
+  }
   if (res.status >= 500) {
     throw new Error(`Server error (${res.status}). The pipeline failed while answering.`);
   }
+
   if (!res.ok) {
     throw new Error(`Request failed (${res.status}). The pipeline did not return a result.`);
   }
