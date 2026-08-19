@@ -4,7 +4,6 @@ import {
   BadgeCheck,
   BookOpenText,
   Braces,
-  CheckCircle2,
   Copy,
   ExternalLink,
   FileSearch,
@@ -23,15 +22,15 @@ import {
   Trash2,
   TrendingUp,
   TriangleAlert,
-  Workflow,
   X,
 } from "lucide-react";
 
 import { About } from "@/components/About";
+import { PipelineStrip, SafetyAnalysisBlock, StreamedText } from "@/components/AnswerStream";
 import { Logo } from "@/components/Logo";
 import { EmptyState, Panel } from "@/components/Panel";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
-import { SkeletonPanel, SkeletonSteps, SkeletonTable } from "@/components/Skeletons";
+import { SkeletonPanel } from "@/components/Skeletons";
 import { CORPUS, SUGGESTED_QUESTIONS } from "@/lib/corpus";
 import {
   buildEntry,
