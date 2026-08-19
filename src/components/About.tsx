@@ -33,8 +33,8 @@ function TeamCover() {
       setError("Please choose an image file.");
       return;
     }
-    if (file.size > 2_500_000) {
-      setError("Please choose an image under 2.5 MB.");
+    if (file.size > 8_000_000) {
+      setError("Please choose an image under 8 MB.");
       return;
     }
     try {
@@ -114,7 +114,7 @@ function TeamCover() {
               Upload a team photo
             </span>
             <span className="relative text-xs text-muted-foreground">
-              Drag &amp; drop or click to browse · PNG or JPG up to 2.5 MB
+              Drag &amp; drop or click to browse · PNG or JPG up to 8 MB · shared with everyone
             </span>
           </button>
         )}
@@ -175,8 +175,8 @@ function TeamCard({
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
-    if (file.size > 1_500_000) {
-      setError("Please choose an image under 1.5 MB.");
+    if (file.size > 8_000_000) {
+      setError("Please choose an image under 8 MB.");
       return;
     }
     try {
