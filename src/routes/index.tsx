@@ -85,6 +85,7 @@ const CONFIDENCE_STYLES: Record<string, string> = {
   medium: "bg-warning/15 text-warning border-warning/30",
   moderate: "bg-warning/15 text-warning border-warning/30",
   low: "bg-destructive/15 text-destructive border-destructive/30",
+  none: "bg-muted/40 text-muted-foreground border-border",
 };
 
 function ConfidenceBadge({ value, className = "" }: { value: string; className?: string }) {
@@ -108,6 +109,26 @@ function ScoreBadge({ score, className = "" }: { score: number; className?: stri
     </span>
   );
 }
+
+/** Dense / BM25 sub-score bar for a retrieved chunk. */
+function SubScore({ label, value }: { label: string; value: number }) {
+  const v = Math.max(0, Math.min(1, value));
+  return (
+    <div className="min-w-[92px] flex-1">
+      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span>{label}</span>
+        <span className="font-semibold text-foreground">{value.toFixed(3)}</span>
+      </div>
+      <div className="h-1 overflow-hidden rounded-full bg-secondary">
+        <div
+          className="h-full rounded-full gradient-primary transition-[width] duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ width: `${v * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 
 function Index() {
   const { theme, toggle } = useTheme();
