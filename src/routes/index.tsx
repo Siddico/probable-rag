@@ -65,13 +65,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const PIPELINE_STEPS = [
-  "Query normalized and embedded",
-  "Retriever connected",
-  "Top-k chunks re-ranked",
-  "Refusal logic strictly enforced",
-  "Structured output validated",
-];
 
 function timeAgo(at: number) {
   const s = Math.max(1, Math.round((Date.now() - at) / 1000));
