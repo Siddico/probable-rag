@@ -501,21 +501,54 @@ function Index() {
                     defaultOpen={false}
                   >
                     {chunks.length ? (
-                      <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
-                        {chunks.slice(0, 5).map((chunk, i) => (
+                      <div className="flex max-h-[460px] flex-col gap-3 overflow-y-auto pr-1">
+                        {chunks.map((chunk, i) => (
                           <article
-                            key={i}
-                            className="lift rounded-xl border border-border bg-secondary/50 p-4"
+                            key={chunk.chunk_id ?? i}
+                            className="lift reveal rounded-xl border border-border bg-secondary/50 p-4"
+                            style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
                           >
                             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                               <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
-                                {chunk.metadata?.section ?? "Unlabeled section"}
+                                {chunk.metadata?.section_path ??
+                                  chunk.metadata?.section ??
+                                  "Unlabeled section"}
                               </p>
                               <span className="shrink-0 rounded-full bg-primary/20 px-2.5 py-1 text-xs text-accent">
                                 {typeof chunk.score === "number" ? chunk.score.toFixed(3) : "—"}
                               </span>
                             </div>
-                            <p className="text-xs leading-relaxed text-muted-foreground">
+
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                              {chunk.chunk_id && (
+                                <span className="max-w-full truncate rounded-full border border-border bg-background/40 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                                  {chunk.chunk_id}
+                                </span>
+                              )}
+                              {chunk.metadata?.document && (
+                                <span className="max-w-full truncate rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                                  {chunk.metadata.document}
+                                </span>
+                              )}
+                              {chunk.metadata?.is_reference && (
+                                <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] text-warning">
+                                  reference list
+                                </span>
+                              )}
+                            </div>
+
+                            {(typeof chunk.dense === "number" || typeof chunk.bm25 === "number") && (
+                              <div className="mb-3 flex flex-wrap gap-3">
+                                {typeof chunk.dense === "number" && (
+                                  <SubScore label="dense" value={chunk.dense} />
+                                )}
+                                {typeof chunk.bm25 === "number" && (
+                                  <SubScore label="bm25" value={chunk.bm25} />
+                                )}
+                              </div>
+                            )}
+
+                            <p className="line-clamp-6 text-xs leading-relaxed text-muted-foreground">
                               {chunk.text ?? "—"}
                             </p>
                           </article>
@@ -524,10 +557,11 @@ function Index() {
                     ) : (
                       <EmptyState
                         icon={Layers}
-                        title="No passages yet"
-                        body="Chunks retrieved for a query, with their similarity scores, will appear here."
+                        title="No passages above threshold"
+                        body="Nothing scored above the 0.35 retrieval threshold, so the pipeline blocked generation instead of answering ungrounded."
                       />
                     )}
+
                   </Panel>
 
                   <Panel
