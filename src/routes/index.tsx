@@ -311,22 +311,43 @@ function Index() {
                 </button>
               </div>
 
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    status?.pipeline_ready
-                      ? "bg-success"
-                      : status
-                        ? "bg-warning animate-pulse-soft"
-                        : "bg-destructive animate-pulse-soft"
-                  }`}
-                />
-                {status?.pipeline_ready
-                  ? "Backend ready · retriever connected"
-                  : status
-                    ? "Backend reachable · pipeline still initializing"
-                    : "Backend unreachable — start the server / tunnel"}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      status?.pipeline_ready
+                        ? "bg-success"
+                        : status
+                          ? "bg-warning animate-pulse-soft"
+                          : "bg-destructive animate-pulse-soft"
+                    }`}
+                  />
+                  {status?.pipeline_ready
+                    ? "Backend ready"
+                    : status
+                      ? "Backend reachable · pipeline still initializing"
+                      : "Backend unreachable — start the server"}
+                </span>
+                {status && (
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {(
+                      [
+                        ["pipeline", status.pipeline_ready],
+                        ["retriever", status.retriever_connected],
+                        ["api keys", status.has_keys],
+                      ] as const
+                    ).map(([label, ok]) => (
+                      <span key={label} className="inline-flex items-center gap-1.5">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-success" : "bg-destructive"}`}
+                        />
+                        {label}
+                      </span>
+                    ))}
+                  </span>
+                )}
               </div>
+
 
               {!structured && !loading && (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
