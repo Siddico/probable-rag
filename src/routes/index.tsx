@@ -385,6 +385,17 @@ function Index() {
                 </>
               ) : structured ? (
                 <>
+                  {!chunks.length && (
+                    <div className="reveal flex items-start gap-3 rounded-3xl border border-warning/40 bg-warning/10 p-5 text-sm">
+                      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                      <p className="leading-relaxed">
+                        <strong className="font-semibold">Generation guarded.</strong> No passage
+                        passed the 0.35 retrieval threshold, so the pipeline refused to answer from
+                        outside the corpus instead of guessing.
+                      </p>
+                    </div>
+                  )}
+
                   <Panel
                     icon={BadgeCheck}
                     title="Recommendation"
@@ -407,10 +418,17 @@ function Index() {
                         )}
                       </div>
                     )}
-                    {structured.safety_analysis && (
+                    {structured.safety_analysis ? (
                       <SafetyAnalysisBlock safety={structured.safety_analysis} />
+                    ) : (
+                      <p className="mt-4 rounded-2xl border border-dashed border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                        Safety analysis not returned for this answer — the quality gate reports
+                        confidence, citation accuracy and faithfulness whenever the backend attaches
+                        <code className="mx-1 rounded bg-secondary px-1">safety_analysis</code>.
+                      </p>
                     )}
                   </Panel>
+
 
                   <div className="grid min-w-0 gap-5 xl:grid-cols-2">
                   <Panel
