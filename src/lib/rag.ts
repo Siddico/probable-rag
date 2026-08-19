@@ -7,12 +7,22 @@ export type Citation = {
   [key: string]: unknown;
 };
 
+export type SafetyAnalysis = {
+  reasoning?: string;
+  confidence_score?: number;
+  citation_accuracy?: number;
+  faithfulness?: number;
+  [key: string]: unknown;
+};
+
 export type StructuredOutput = {
   recommendation?: string;
   evidence?: string;
   citations?: Citation[];
+  safety_analysis?: SafetyAnalysis;
   [key: string]: unknown;
 };
+
 
 export type RetrievedChunk = {
   score?: number;

@@ -4,7 +4,6 @@ import {
   BadgeCheck,
   BookOpenText,
   Braces,
-  CheckCircle2,
   Copy,
   ExternalLink,
   FileSearch,
@@ -18,20 +17,19 @@ import {
   RotateCcw,
   Send,
   Sparkles,
-  Stethoscope,
   TimerReset,
   Trash2,
   TrendingUp,
   TriangleAlert,
-  Workflow,
   X,
 } from "lucide-react";
 
 import { About } from "@/components/About";
+import { PipelineStrip, SafetyAnalysisBlock, StreamedText } from "@/components/AnswerStream";
 import { Logo } from "@/components/Logo";
 import { EmptyState, Panel } from "@/components/Panel";
 import { SidebarContent, type TabId } from "@/components/Sidebar";
-import { SkeletonPanel, SkeletonSteps, SkeletonTable } from "@/components/Skeletons";
+import { SkeletonPanel } from "@/components/Skeletons";
 import { CORPUS, SUGGESTED_QUESTIONS } from "@/lib/corpus";
 import {
   buildEntry,
@@ -265,22 +263,8 @@ function Index() {
         </div>
 
         {tab === "ask" && (
-          <>
+          <div className="mx-auto flex w-full max-w-3xl flex-col">
             <section className="glass reveal mb-6 rounded-3xl p-5 md:p-6">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="grid h-9 w-9 place-items-center rounded-xl gradient-primary text-primary-foreground shadow-[var(--shadow-glow)]">
-                  <Stethoscope className="h-[18px] w-[18px]" strokeWidth={1.9} />
-                </span>
-                <div className="min-w-0">
-                  <h2 className="font-display text-sm font-semibold tracking-[0.08em]">
-                    Clinical Query
-                  </h2>
-                  <p className="truncate text-xs text-muted-foreground">
-                    Grounded on {CORPUS.pages} pages of peer-reviewed cardiovascular evidence
-                  </p>
-                </div>
-              </div>
-
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <div className="relative min-w-0">
                   <MessageSquareQuote className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -290,7 +274,7 @@ function Index() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") void runQuery(query);
                     }}
-                    placeholder="Ask about risk factors, screening, prevention, therapy..."
+                    placeholder="Ask a clinical question..."
                     className="w-full min-w-0 rounded-xl border border-input bg-input/40 py-3 pl-11 pr-4 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                   />
                 </div>
@@ -305,21 +289,23 @@ function Index() {
                 </button>
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Sparkles className="h-3.5 w-3.5 text-accent" /> Try
-                </span>
-                {SUGGESTED_QUESTIONS.slice(0, 4).map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => void runQuery(q)}
-                    className="lift max-w-full truncate rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
+              {!structured && !loading && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Sparkles className="h-3.5 w-3.5 text-accent" /> Try
+                  </span>
+                  {SUGGESTED_QUESTIONS.slice(0, 4).map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => void runQuery(q)}
+                      className="lift max-w-full truncate rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
             </section>
 
             {error && (
@@ -329,180 +315,168 @@ function Index() {
               </div>
             )}
 
-            <div className="grid gap-6 lg:grid-cols-[2fr_1.2fr]">
-              <div className="flex min-w-0 flex-col gap-6">
-                {loading ? (
-                  <>
-                    <SkeletonPanel title="Recommendation" lines={3} />
-                    <SkeletonPanel title="Evidence" lines={4} />
-                    <SkeletonTable />
-                    <SkeletonPanel title="Raw JSON" lines={5} />
-                  </>
-                ) : structured ? (
-                  <>
-                    <Panel
-                      icon={BadgeCheck}
-                      title="Recommendation"
-                      hint="Model answer constrained to retrieved evidence"
-                      className="lift border-l-2 border-l-accent/60"
-                    >
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {structured.recommendation || "No recommendation returned."}
-                      </p>
-                      {(confidence || typeof best?.score === "number") && (
-                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-                          {confidence && <ConfidenceBadge value={confidence} />}
-                          {typeof best?.score === "number" && <ScoreBadge score={best.score} />}
-                          {best?.section && (
-                            <span className="max-w-full truncate rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
-                              best match · {best.section}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </Panel>
+            <PipelineStrip steps={PIPELINE_STEPS} loading={loading} done={!!structured} />
 
-                    <Panel icon={BookOpenText} title="Evidence" hint="Supporting passages summary">
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                        {structured.evidence || "No evidence returned."}
-                      </p>
-                    </Panel>
-
-                    <Panel
-                      icon={Quote}
-                      title="Citations"
-                      hint={`${citations.length} reference${citations.length === 1 ? "" : "s"}`}
-                    >
-                      {citations.length ? (
-                        <div className="-mx-2 overflow-x-auto px-2">
-                          <table className="w-full min-w-[420px] text-left text-sm">
-                            <thead>
-                              <tr className="text-xs uppercase tracking-wider text-muted-foreground">
-                                <th className="pb-3 pr-4 font-medium">#</th>
-                                <th className="pb-3 pr-4 font-medium">Document</th>
-                                <th className="pb-3 font-medium">Section</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {citations.map((c, i) => (
-                                <tr key={i} className="border-t border-border">
-                                  <td className="py-3 pr-4 text-xs text-accent">
-                                    {String(i + 1).padStart(2, "0")}
-                                  </td>
-                                  <td className="py-3 pr-4">{c.document ?? "—"}</td>
-                                  <td className="py-3 text-muted-foreground">{c.section ?? "—"}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : (
-                        <EmptyState
-                          icon={Quote}
-                          title="No citations returned"
-                          body="The pipeline answered without attaching reference metadata."
-                        />
-                      )}
-                    </Panel>
-
-                    <Panel
-                      icon={Braces}
-                      title="Raw structured output"
-                      hint="Validated JSON payload"
-                      action={
-                        <button
-                          type="button"
-                          onClick={() => void copyJson()}
-                          className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                          {copied ? "Copied" : "Copy"}
-                        </button>
-                      }
-                    >
-                      <pre className="max-h-80 overflow-auto rounded-xl bg-secondary/60 p-4 text-xs leading-relaxed">
-                        {JSON.stringify(structured, null, 2)}
-                      </pre>
-                    </Panel>
-                  </>
-                ) : (
-                  <Panel icon={FileSearch} title="Awaiting query" hint="Pipeline idle">
-                    <EmptyState
-                      icon={Stethoscope}
-                      title="Ask a clinical question to begin"
-                      body="Type a question above or pick one of the suggested prompts — the retriever will pull the most relevant passages and ground the answer in them."
+            <div className="flex min-w-0 flex-col gap-5">
+              {loading ? (
+                <>
+                  <SkeletonPanel title="Recommendation" lines={4} />
+                  <SkeletonPanel title="Evidence" lines={3} />
+                </>
+              ) : structured ? (
+                <>
+                  <Panel
+                    icon={BadgeCheck}
+                    title="Recommendation"
+                    hint="Model answer constrained to retrieved evidence"
+                    className="lift border-l-2 border-l-accent/60"
+                  >
+                    <StreamedText
+                      key={structured.recommendation}
+                      text={structured.recommendation || "No recommendation returned."}
+                      active
                     />
+                    {(confidence || typeof best?.score === "number") && (
+                      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                        {confidence && <ConfidenceBadge value={confidence} />}
+                        {typeof best?.score === "number" && <ScoreBadge score={best.score} />}
+                        {best?.section && (
+                          <span className="max-w-full truncate rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                            best match · {best.section}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {structured.safety_analysis && (
+                      <SafetyAnalysisBlock safety={structured.safety_analysis} />
+                    )}
                   </Panel>
-                )}
-              </div>
 
-              <div className="flex min-w-0 flex-col gap-6">
-                {loading ? (
-                  <>
-                    <SkeletonSteps />
-                    <SkeletonPanel title="Retrieved Chunks" lines={6} />
-                  </>
-                ) : (
-                  <>
-                    <Panel icon={Workflow} title="Pipeline Status" hint="Retrieval trace">
-                      <ol className="flex flex-col gap-4">
-                        {PIPELINE_STEPS.map((step, i) => (
-                          <li key={step} className="flex items-start gap-3 text-sm">
-                            <CheckCircle2
-                              className={`mt-0.5 h-5 w-5 shrink-0 transition-colors duration-500 ${
-                                result ? "text-success" : "text-muted-foreground/60"
-                              }`}
-                              style={{ transitionDelay: `${i * 90}ms` }}
-                              strokeWidth={1.9}
-                            />
-                            <span className={result ? "" : "text-muted-foreground"}>{step}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </Panel>
+                  <Panel
+                    icon={BookOpenText}
+                    title="Evidence"
+                    hint="Supporting passages summary"
+                    collapsible
+                  >
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                      {structured.evidence || "No evidence returned."}
+                    </p>
+                  </Panel>
 
-                    <Panel
-                      icon={Layers}
-                      title="Retrieved Chunks"
-                      hint={`${chunks.length} passage${chunks.length === 1 ? "" : "s"} ranked${
-                        typeof best?.score === "number" ? ` · best ${best.score.toFixed(3)}` : ""
-                      }`}
-                    >
-                      {chunks.length ? (
-                        <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
-                          {chunks.slice(0, 5).map((chunk, i) => (
-                            <article
-                              key={i}
-                              className="lift rounded-xl border border-border bg-secondary/50 p-4"
-                            >
-                              <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                                <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
-                                  {chunk.metadata?.section ?? "Unlabeled section"}
-                                </p>
-                                <span className="shrink-0 rounded-full bg-primary/20 px-2.5 py-1 text-xs text-accent">
-                                  {typeof chunk.score === "number" ? chunk.score.toFixed(3) : "—"}
-                                </span>
-                              </div>
-                              <p className="text-xs leading-relaxed text-muted-foreground">
-                                {chunk.text ?? "—"}
+                  <Panel
+                    icon={Quote}
+                    title="Citations"
+                    hint={`${citations.length} reference${citations.length === 1 ? "" : "s"}`}
+                    collapsible
+                    defaultOpen={false}
+                  >
+                    {citations.length ? (
+                      <div className="-mx-2 overflow-x-auto px-2">
+                        <table className="w-full min-w-[420px] text-left text-sm">
+                          <thead>
+                            <tr className="text-xs uppercase tracking-wider text-muted-foreground">
+                              <th className="pb-3 pr-4 font-medium">#</th>
+                              <th className="pb-3 pr-4 font-medium">Document</th>
+                              <th className="pb-3 font-medium">Section</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {citations.map((c, i) => (
+                              <tr key={i} className="border-t border-border">
+                                <td className="py-3 pr-4 text-xs text-accent">
+                                  {String(i + 1).padStart(2, "0")}
+                                </td>
+                                <td className="py-3 pr-4">{c.document ?? "—"}</td>
+                                <td className="py-3 text-muted-foreground">{c.section ?? "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <EmptyState
+                        icon={Quote}
+                        title="No citations returned"
+                        body="The pipeline answered without attaching reference metadata."
+                      />
+                    )}
+                  </Panel>
+
+                  <Panel
+                    icon={Layers}
+                    title="Retrieved Chunks"
+                    hint={`${chunks.length} passage${chunks.length === 1 ? "" : "s"} ranked${
+                      typeof best?.score === "number" ? ` · best ${best.score.toFixed(3)}` : ""
+                    }`}
+                    collapsible
+                    defaultOpen={false}
+                  >
+                    {chunks.length ? (
+                      <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
+                        {chunks.slice(0, 5).map((chunk, i) => (
+                          <article
+                            key={i}
+                            className="lift rounded-xl border border-border bg-secondary/50 p-4"
+                          >
+                            <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                              <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
+                                {chunk.metadata?.section ?? "Unlabeled section"}
                               </p>
-                            </article>
-                          ))}
-                        </div>
-                      ) : (
-                        <EmptyState
-                          icon={Layers}
-                          title="No passages yet"
-                          body="Chunks retrieved for a query, with their similarity scores, will appear here."
-                        />
-                      )}
-                    </Panel>
-                  </>
-                )}
-              </div>
+                              <span className="shrink-0 rounded-full bg-primary/20 px-2.5 py-1 text-xs text-accent">
+                                {typeof chunk.score === "number" ? chunk.score.toFixed(3) : "—"}
+                              </span>
+                            </div>
+                            <p className="text-xs leading-relaxed text-muted-foreground">
+                              {chunk.text ?? "—"}
+                            </p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        icon={Layers}
+                        title="No passages yet"
+                        body="Chunks retrieved for a query, with their similarity scores, will appear here."
+                      />
+                    )}
+                  </Panel>
+
+                  <Panel
+                    icon={Braces}
+                    title="Raw structured output"
+                    hint="Validated JSON payload"
+                    collapsible
+                    defaultOpen={false}
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => void copyJson()}
+                        className="lift inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+                    }
+                  >
+                    <pre className="max-h-80 overflow-auto rounded-xl bg-secondary/60 p-4 text-xs leading-relaxed">
+                      {JSON.stringify(structured, null, 2)}
+                    </pre>
+                  </Panel>
+                </>
+              ) : (
+                <div className="reveal flex flex-col items-center gap-3 py-10 text-center">
+                  <Logo size={64} />
+                  <p className="font-display text-lg">Ask a clinical question to begin</p>
+                  <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+                    Grounded on {CORPUS.pages} pages of peer-reviewed cardiovascular evidence — every
+                    answer traced back to its retrieved passages.
+                  </p>
+                </div>
+              )}
             </div>
-          </>
+          </div>
         )}
+
 
         {tab === "history" && (
           <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
