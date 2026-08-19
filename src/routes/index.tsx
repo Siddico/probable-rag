@@ -143,6 +143,8 @@ function Index() {
   const { history, add, remove, clear } = useHistory();
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<PipelineStatus | null>(null);
+  const [jsonView, setJsonView] = useState<"structured" | "raw">("structured");
+
 
   useEffect(() => {
     void fetchStatus().then(setStatus);
